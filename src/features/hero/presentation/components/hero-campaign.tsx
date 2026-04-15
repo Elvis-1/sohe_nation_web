@@ -73,14 +73,14 @@ export function HeroCampaign({
               <div className="absolute inset-x-0 bottom-0 flex items-end justify-between gap-6 p-6">
                 <div>
                   <p className="font-[family:var(--font-supporting)] text-[10px] uppercase tracking-[0.3em] text-[var(--color-text-muted)]">
-                    Home Direction
+                    Launch Film
                   </p>
                   <p className="mt-2 max-w-sm font-[family:var(--font-heading)] text-4xl uppercase leading-none text-[var(--color-text-primary)]">
-                    Nike-style clarity, Sohe discipline.
+                    The first frame of the drop.
                   </p>
                 </div>
                 <div className="hidden rounded-full border border-white/10 bg-black/35 px-4 py-3 font-[family:var(--font-supporting)] text-[10px] uppercase tracking-[0.26em] text-[var(--color-text-secondary)] md:block">
-                  Motion-led hero
+                  Campaign motion
                 </div>
               </div>
             </div>

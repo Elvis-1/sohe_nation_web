@@ -1,17 +1,19 @@
+import Link from "next/link";
+
 import { Container } from "@/core/ui/container";
 
 const pillars = [
   {
-    title: "Campaign-first",
-    body: "The homepage leads with a single commanding story before branching into merchandise.",
+    title: "Uniform Energy",
+    body: "Every look is cut to feel disciplined, sharp, and unmistakably part of the same command language.",
   },
   {
-    title: "Region-ready contracts",
-    body: "Commerce types already carry region and currency fields so expansion does not require a rebuild.",
+    title: "Runway Utility",
+    body: "The collection holds both posture and movement, pairing strong lines with everyday wearability.",
   },
   {
-    title: "Payments prepared",
-    body: "Checkout will route into hosted PayPal and Flutterwave flows instead of storing sensitive payment details.",
+    title: "Story To Product",
+    body: "Editorial frames, product detail, and the buy path now move as one continuous release experience.",
   },
 ];
 
@@ -22,11 +24,20 @@ export function StoryBand() {
         <div className="grid gap-6 rounded-[2rem] border border-[var(--color-border-subtle)] bg-[linear-gradient(180deg,rgba(30,27,23,0.92),rgba(12,12,12,0.98))] p-6 md:grid-cols-[0.8fr_1.2fr] md:p-8">
           <div>
             <p className="font-[family:var(--font-supporting)] text-xs uppercase tracking-[0.3em] text-[var(--color-accent-gold-highlight)]">
-              System Direction
+              Editorial Cut
             </p>
             <h2 className="mt-4 font-[family:var(--font-heading)] text-5xl uppercase leading-none text-[var(--color-text-primary)]">
-              Not just a landing page. A commerce platform with posture.
+              The campaign keeps moving after the hero.
             </h2>
+            <p className="mt-5 max-w-xl text-base leading-7 text-[var(--color-text-secondary)]">
+              Step into the release story, follow the styling decisions, and move directly from the frame into the pieces that hold it together.
+            </p>
+            <Link
+              href="/stories/built-like-an-army"
+              className="mt-6 inline-flex rounded-full border border-[var(--color-border-strong)] px-5 py-3 font-[family:var(--font-supporting)] text-[10px] uppercase tracking-[0.24em] text-[var(--color-text-primary)] transition hover:bg-white/6"
+            >
+              Enter Lookbook
+            </Link>
           </div>
           <div className="grid gap-4">
             {pillars.map((pillar) => (

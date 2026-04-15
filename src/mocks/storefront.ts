@@ -5,17 +5,17 @@ import type {
 } from "@/core/types/commerce";
 
 const navigation: NavigationItem[] = [
-  { label: "New & Featured", href: "#" },
-  { label: "Men", href: "#" },
-  { label: "Women", href: "#" },
-  { label: "Collections", href: "#" },
-  { label: "Stories", href: "#" },
+  { label: "New Drop", href: "/" },
+  { label: "Men's Line", href: "/products?gender=men" },
+  { label: "Women's Line", href: "/products?gender=women" },
+  { label: "Uniform Edit", href: "/products" },
+  { label: "Stories", href: "/stories" },
 ];
 
 const utilityLinks: NavigationItem[] = [
-  { label: "Search", href: "#" },
-  { label: "Account", href: "#" },
-  { label: "Bag", href: "#" },
+  { label: "Shop", href: "/products" },
+  { label: "Lookbook", href: "/stories" },
+  { label: "Flagship", href: "/products/sn-tactical-tracksuit-set" },
 ];
 
 const heroCampaign: HeroCampaign = {
@@ -23,13 +23,13 @@ const heroCampaign: HeroCampaign = {
   title: "Built Like An Army",
   statement: "Street discipline. Runway presence.",
   description:
-    "A Nike-inspired launch page translated for Sohe's Nation: bold photography, command-led copy, and a fast path from campaign to cart.",
-  primaryCta: { label: "Shop The Drop", href: "#featured-drop" },
-  secondaryCta: { label: "View Lookbook", href: "#story-band" },
+    "A commanding first release from Sohe's Nation: tactical layers, sharp tailoring, and statement silhouettes built to hold the whole frame.",
+  primaryCta: { label: "Shop The Drop", href: "/products" },
+  secondaryCta: { label: "Enter The Story", href: "/stories/built-like-an-army" },
   campaignStats: [
-    { label: "Styles in Drop", value: "12" },
-    { label: "Launch Markets", value: "1 now / region-ready" },
-    { label: "Payments", value: "PayPal + Flutterwave" },
+    { label: "Looks In Drop", value: "12" },
+    { label: "Lead Story", value: "01" },
+    { label: "Checkout Options", value: "02" },
   ],
   media: {
     id: "hero-video",
@@ -59,6 +59,19 @@ const featuredProducts: Product[] = [
         alt: "Tracksuit set in studio pose",
         type: "image",
         url: "/hoodle_with_pant.jpeg",
+      },
+      {
+        id: "tracksuit-detail-jacket",
+        alt: "Tracksuit jacket detail view",
+        type: "image",
+        url: "/jacket_with_pant.jpeg",
+      },
+      {
+        id: "tracksuit-runway-motion",
+        alt: "Tracksuit runway motion clip",
+        type: "video",
+        url: "/hero-runway.mp4",
+        posterUrl: "/hoodle_with_pant.jpeg",
       },
     ],
     priceRange: {
@@ -101,6 +114,12 @@ const featuredProducts: Product[] = [
         type: "image",
         url: "/jacket2.jpeg",
       },
+      {
+        id: "command-jacket-alt",
+        alt: "Command jacket alternate angle",
+        type: "image",
+        url: "/jacket_2.jpeg",
+      },
     ],
     priceRange: {
       min: { amount: 112000, currency: "NGN", formatted: "NGN 112,000" },
@@ -120,6 +139,162 @@ const featuredProducts: Product[] = [
         attributes: [
           { name: "fit", value: "boxy" },
           { name: "fabric", value: "technical shell" },
+        ],
+      },
+    ],
+  },
+  {
+    id: "sn-vanguard-shirt",
+    slug: "sn-vanguard-shirt",
+    title: "SN Vanguard Shirt",
+    subtitle: "Structured essential",
+    badge: "Uniform Core",
+    description:
+      "A sharp everyday layer with clean collar framing, disciplined lines, and soft tactical weight.",
+    regionAvailability: ["NG", "US"],
+    defaultRegion: "NG",
+    category: "tops",
+    gender: "men",
+    media: [
+      {
+        id: "vanguard-shirt-main",
+        alt: "Shirt product shot",
+        type: "image",
+        url: "/shirt.jpeg",
+      },
+    ],
+    priceRange: {
+      min: { amount: 56000, currency: "NGN", formatted: "NGN 56,000" },
+      max: { amount: 56000, currency: "NGN", formatted: "NGN 56,000" },
+    },
+    variants: [
+      {
+        id: "variant-shirt-m",
+        sku: "SN-SHRT-BLK-M",
+        slug: "sn-vanguard-shirt-black-m",
+        title: "SN Vanguard Shirt",
+        size: "M",
+        color: "Black Sand",
+        inventoryQuantity: 12,
+        isAvailable: true,
+        price: { amount: 56000, currency: "NGN", formatted: "NGN 56,000" },
+        attributes: [
+          { name: "fit", value: "tailored" },
+          { name: "fabric", value: "cotton sateen" },
+        ],
+      },
+      {
+        id: "variant-shirt-l",
+        sku: "SN-SHRT-BLK-L",
+        slug: "sn-vanguard-shirt-black-l",
+        title: "SN Vanguard Shirt",
+        size: "L",
+        color: "Black Sand",
+        inventoryQuantity: 7,
+        isAvailable: true,
+        price: { amount: 56000, currency: "NGN", formatted: "NGN 56,000" },
+        attributes: [
+          { name: "fit", value: "tailored" },
+          { name: "fabric", value: "cotton sateen" },
+        ],
+      },
+    ],
+  },
+  {
+    id: "sn-command-pant",
+    slug: "sn-command-pant",
+    title: "SN Command Pant",
+    subtitle: "Movement-first base",
+    badge: "Field Ready",
+    description:
+      "Relaxed tactical trousers with refined drape and enough structure to carry a full command look.",
+    regionAvailability: ["NG", "US"],
+    defaultRegion: "NG",
+    category: "bottoms",
+    gender: "women",
+    media: [
+      {
+        id: "command-pant-main",
+        alt: "Pant product shot",
+        type: "image",
+        url: "/ladies_pant1.jpeg",
+      },
+    ],
+    priceRange: {
+      min: { amount: 64000, currency: "NGN", formatted: "NGN 64,000" },
+      max: { amount: 64000, currency: "NGN", formatted: "NGN 64,000" },
+    },
+    variants: [
+      {
+        id: "variant-pant-s",
+        sku: "SN-PANT-OLV-S",
+        slug: "sn-command-pant-olive-s",
+        title: "SN Command Pant",
+        size: "S",
+        color: "Olive Gold",
+        inventoryQuantity: 11,
+        isAvailable: true,
+        price: { amount: 64000, currency: "NGN", formatted: "NGN 64,000" },
+        attributes: [
+          { name: "fit", value: "relaxed" },
+          { name: "fabric", value: "utility twill" },
+        ],
+      },
+      {
+        id: "variant-pant-m",
+        sku: "SN-PANT-OLV-M",
+        slug: "sn-command-pant-olive-m",
+        title: "SN Command Pant",
+        size: "M",
+        color: "Olive Gold",
+        inventoryQuantity: 9,
+        isAvailable: true,
+        price: { amount: 64000, currency: "NGN", formatted: "NGN 64,000" },
+        attributes: [
+          { name: "fit", value: "relaxed" },
+          { name: "fabric", value: "utility twill" },
+        ],
+      },
+    ],
+  },
+  {
+    id: "sn-swelter-overall",
+    slug: "sn-swelter-overall",
+    title: "SN Swelter Overall",
+    subtitle: "Statement one-piece",
+    badge: "Editorial Pick",
+    description:
+      "A runway-shaped overall that brings the brand posture forward with utility seams and bold volume.",
+    regionAvailability: ["NG"],
+    defaultRegion: "NG",
+    category: "bottoms",
+    gender: "women",
+    media: [
+      {
+        id: "swelter-overall-main",
+        alt: "Overall product shot",
+        type: "image",
+        url: "/overal.jpeg",
+      },
+    ],
+    priceRange: {
+      min: { amount: 92000, currency: "NGN", formatted: "NGN 92,000" },
+      max: { amount: 92000, currency: "NGN", formatted: "NGN 92,000" },
+    },
+    variants: [
+      {
+        id: "variant-overall-s",
+        sku: "SN-OVR-BLK-S",
+        slug: "sn-swelter-overall-black-s",
+        title: "SN Swelter Overall",
+        size: "S",
+        color: "Black Gold",
+        inventoryQuantity: 6,
+        isAvailable: true,
+        price: { amount: 92000, currency: "NGN", formatted: "NGN 92,000" },
+        attributes: [
+          { name: "fit", value: "wide-leg" },
+          { name: "fabric", value: "performance blend" },
         ],
       },
     ],
@@ -162,6 +337,54 @@ const featuredProducts: Product[] = [
         attributes: [
           { name: "fit", value: "adjustable" },
           { name: "fabric", value: "cotton twill" },
+        ],
+      },
+    ],
+  },
+  {
+    id: "sn-swelter-jacket",
+    slug: "sn-swelter-jacket",
+    title: "SN Swelter Jacket",
+    subtitle: "Cold-front layer",
+    badge: "Outerwear",
+    description:
+      "A padded command jacket with oversized proportion, matte texture, and a polished campaign finish.",
+    regionAvailability: ["NG", "GB"],
+    defaultRegion: "NG",
+    category: "outerwear",
+    gender: "women",
+    media: [
+      {
+        id: "swelter-jacket-main",
+        alt: "Puffer jacket product shot",
+        type: "image",
+        url: "/swelter.jpeg",
+      },
+      {
+        id: "swelter-jacket-alt",
+        alt: "Puffer jacket alternate angle",
+        type: "image",
+        url: "/swelter2.jpeg",
+      },
+    ],
+    priceRange: {
+      min: { amount: 146000, currency: "NGN", formatted: "NGN 146,000" },
+      max: { amount: 146000, currency: "NGN", formatted: "NGN 146,000" },
+    },
+    variants: [
+      {
+        id: "variant-swelter-jacket-m",
+        sku: "SN-SWJ-CRM-M",
+        slug: "sn-swelter-jacket-cream-m",
+        title: "SN Swelter Jacket",
+        size: "M",
+        color: "Ash Gold",
+        inventoryQuantity: 4,
+        isAvailable: true,
+        price: { amount: 146000, currency: "NGN", formatted: "NGN 146,000" },
+        attributes: [
+          { name: "fit", value: "oversized" },
+          { name: "fabric", value: "technical quilt" },
         ],
       },
     ],
