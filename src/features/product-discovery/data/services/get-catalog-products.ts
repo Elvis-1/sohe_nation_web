@@ -135,7 +135,10 @@ export async function getCatalogProducts(filters: CatalogFilters): Promise<Catal
 
   const filteredProducts = products.filter((product) => {
     const matchesCategory = !filters.category || product.category === filters.category;
-    const matchesGender = !filters.gender || product.gender === filters.gender;
+    const matchesGender =
+      !filters.gender ||
+      product.gender === filters.gender ||
+      (filters.gender === "men" && product.gender === "unisex");
     const matchesSize =
       !filters.size || product.variants.some((variant) => variant.size === filters.size);
 

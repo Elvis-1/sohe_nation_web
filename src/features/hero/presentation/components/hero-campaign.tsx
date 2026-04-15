@@ -43,19 +43,6 @@ export function HeroCampaign({
                   {campaign.secondaryCta.label}
                 </Link>
               </div>
-
-              <div className="grid gap-4 border-t border-white/8 pt-6 sm:grid-cols-3">
-                {campaign.campaignStats.map((stat) => (
-                  <div key={stat.label}>
-                    <p className="font-[family:var(--font-heading)] text-4xl uppercase leading-none text-[var(--color-text-primary)]">
-                      {stat.value}
-                    </p>
-                    <p className="mt-2 font-[family:var(--font-supporting)] text-[10px] uppercase tracking-[0.24em] text-[var(--color-text-muted)]">
-                      {stat.label}
-                    </p>
-                  </div>
-                ))}
-              </div>
             </div>
 
             <div className="relative min-h-[28rem] overflow-hidden rounded-[1.6rem] border border-white/10 bg-black/35">

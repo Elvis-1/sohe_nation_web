@@ -12,9 +12,10 @@ export default async function Home() {
       <HeroCampaign campaign={campaign} />
       <ProductGrid
         eyebrow="Opening Drop"
-        title="The first uniform of the season."
-        description="A tight edit of command jackets, sharp shirting, tactical trousers, and the flagship tracksuit set that defines the release."
+        title="The lead looks of the opening drop."
+        description="An authored release edit led by the flagship tracksuit, then sharpened with command outerwear, utility shirting, and the pieces that complete the line."
         products={storefrontMock.featuredProducts}
+        featuredProductId="sn-tactical-tracksuit"
       />
       <StoryBand />
     </>

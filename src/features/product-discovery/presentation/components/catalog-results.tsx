@@ -18,11 +18,17 @@ export function CatalogResults({
   activeLabel: string;
 }) {
   const [activeProduct, setActiveProduct] = useState<Product | null>(null);
+  const gridClassName =
+    products.length <= 1
+      ? "mt-8 grid gap-5 max-w-xl"
+      : products.length === 2
+        ? "mt-8 grid gap-5 md:grid-cols-2 max-w-5xl"
+        : "mt-8 grid gap-5 md:grid-cols-2 xl:grid-cols-3";
 
   return (
     <>
       <section>
-        <div className="flex flex-wrap items-end justify-between gap-4">
+        <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <p className="font-[family:var(--font-supporting)] text-[10px] uppercase tracking-[0.28em] text-[var(--color-accent-gold-highlight)]">
               Catalog Results
@@ -37,11 +43,11 @@ export function CatalogResults({
         </div>
 
         {products.length ? (
-          <div className="mt-8 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+          <div className={gridClassName}>
             {products.map((product) => (
               <article
                 key={product.id}
-                className="group overflow-hidden rounded-[1.75rem] border border-white/8 bg-[linear-gradient(180deg,rgba(33,31,28,0.98),rgba(18,18,18,0.96))]"
+                className="group flex h-full flex-col overflow-hidden rounded-[1.75rem] border border-white/8 bg-[linear-gradient(180deg,rgba(33,31,28,0.98),rgba(18,18,18,0.96))]"
               >
                 <div className="relative aspect-[4/4.5] overflow-hidden">
                   <Image
@@ -49,23 +55,24 @@ export function CatalogResults({
                     alt={product.media[0].alt}
                     fill
                     className="object-cover transition duration-700 group-hover:scale-[1.04]"
+                    sizes="(max-width: 767px) 100vw, (max-width: 1279px) 50vw, 33vw"
                   />
                   <div className="absolute inset-0 bg-[linear-gradient(180deg,transparent,rgba(0,0,0,0.7))]" />
                   <div className="absolute inset-x-0 bottom-0 flex items-end justify-between gap-4 p-4">
-                    <div>
+                    <div className="min-w-0">
                       <p className="font-[family:var(--font-supporting)] text-[10px] uppercase tracking-[0.22em] text-[var(--color-text-muted)]">
                         {product.subtitle}
                       </p>
-                      <p className="mt-2 font-[family:var(--font-heading)] text-3xl uppercase leading-none text-[var(--color-text-primary)]">
+                      <p className="mt-2 text-balance font-[family:var(--font-heading)] text-3xl uppercase leading-none text-[var(--color-text-primary)]">
                         {product.title}
                       </p>
                     </div>
-                    <div className="rounded-full border border-white/10 bg-black/35 px-3 py-2 font-[family:var(--font-supporting)] text-[10px] uppercase tracking-[0.22em] text-[var(--color-accent-gold-highlight)]">
+                    <div className="shrink-0 rounded-full border border-white/10 bg-black/35 px-3 py-2 font-[family:var(--font-supporting)] text-[10px] uppercase tracking-[0.22em] text-[var(--color-accent-gold-highlight)]">
                       {product.priceRange.min.formatted}
                     </div>
                   </div>
                 </div>
-                <div className="space-y-5 p-5">
+                <div className="flex flex-1 flex-col space-y-5 p-5">
                   <p className="text-sm leading-7 text-[var(--color-text-secondary)]">
                     {product.description}
                   </p>
@@ -79,7 +86,7 @@ export function CatalogResults({
                       </div>
                     ))}
                   </div>
-                  <div className="flex flex-wrap gap-3">
+                  <div className="mt-auto flex flex-wrap gap-3">
                     <button
                       type="button"
                       onClick={() => setActiveProduct(product)}

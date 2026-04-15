@@ -56,6 +56,7 @@ export type Product = {
 export type NavigationItem = {
   label: string;
   href: string;
+  isDisabled?: boolean;
 };
 
 export type HeroCampaign = {

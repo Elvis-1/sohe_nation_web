@@ -15,20 +15,27 @@ function getActiveLabel({
   gender: string;
   query: string;
 }) {
+  const formatToken = (value: string) =>
+    value
+      .split("-")
+      .filter(Boolean)
+      .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+      .join(" ");
+
   if (query) {
     return `Search: ${query}`;
   }
 
   if (category && gender) {
-    return `${gender} / ${category}`;
+    return `${formatToken(gender)} / ${formatToken(category)}`;
   }
 
   if (category) {
-    return category;
+    return formatToken(category);
   }
 
   if (gender) {
-    return `${gender} selection`;
+    return `${formatToken(gender)} Selection`;
   }
 
   return "All field-ready pieces";
@@ -42,6 +49,7 @@ export default async function ProductsPage({
   const resolvedSearchParams = await searchParams;
   const filters = parseCatalogFilters(resolvedSearchParams);
   const catalog = await getCatalogProducts(filters);
+  const hideGenderFilter = filters.gender === "men" || filters.gender === "women";
 
   return (
     <Container className="py-10 md:py-14">
@@ -88,8 +96,12 @@ export default async function ProductsPage({
         </div>
       </section>
 
-      <div className="mt-8 grid gap-8 xl:grid-cols-[24rem_minmax(0,1fr)]">
-        <CatalogFilters facets={catalog.availableFacets} filters={catalog.appliedFilters} />
+      <div className="mt-8 space-y-8">
+        <CatalogFilters
+          facets={catalog.availableFacets}
+          filters={catalog.appliedFilters}
+          hideGenderFilter={hideGenderFilter}
+        />
         <CatalogResults
           products={catalog.products}
           total={catalog.total}

@@ -5,16 +5,21 @@ import type { CatalogResult } from "@/features/product-discovery/data/services/g
 type CatalogFiltersProps = {
   facets: CatalogResult["availableFacets"];
   filters: CatalogResult["appliedFilters"];
+  hideGenderFilter?: boolean;
 };
 
 function renderOptionLabel(label: string, count: number) {
   return `${label} (${count})`;
 }
 
-export function CatalogFilters({ facets, filters }: CatalogFiltersProps) {
+export function CatalogFilters({
+  facets,
+  filters,
+  hideGenderFilter = false,
+}: CatalogFiltersProps) {
   return (
     <form className="rounded-[2rem] border border-[var(--color-border-subtle)] bg-[linear-gradient(180deg,rgba(33,31,28,0.98),rgba(12,12,12,0.98))] p-6" method="GET">
-      <div className="flex items-center justify-between gap-4">
+      <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <p className="font-[family:var(--font-supporting)] text-[10px] uppercase tracking-[0.26em] text-[var(--color-accent-gold-highlight)]">
             Discovery Controls
@@ -31,8 +36,8 @@ export function CatalogFilters({ facets, filters }: CatalogFiltersProps) {
         </Link>
       </div>
 
-      <div className="mt-6 grid gap-4 lg:grid-cols-[1.2fr_repeat(4,minmax(0,1fr))]">
-        <label className="grid gap-2">
+      <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-[minmax(0,1.3fr)_repeat(4,minmax(0,1fr))]">
+        <label className="grid min-w-0 gap-2">
           <span className="font-[family:var(--font-supporting)] text-[10px] uppercase tracking-[0.22em] text-[var(--color-text-muted)]">
             Search
           </span>
@@ -45,7 +50,7 @@ export function CatalogFilters({ facets, filters }: CatalogFiltersProps) {
           />
         </label>
 
-        <label className="grid gap-2">
+        <label className="grid min-w-0 gap-2">
           <span className="font-[family:var(--font-supporting)] text-[10px] uppercase tracking-[0.22em] text-[var(--color-text-muted)]">
             Category
           </span>
@@ -63,25 +68,27 @@ export function CatalogFilters({ facets, filters }: CatalogFiltersProps) {
           </select>
         </label>
 
-        <label className="grid gap-2">
-          <span className="font-[family:var(--font-supporting)] text-[10px] uppercase tracking-[0.22em] text-[var(--color-text-muted)]">
-            Gender
-          </span>
-          <select
-            name="gender"
-            defaultValue={filters.gender}
-            className="h-12 rounded-[1rem] border border-white/10 bg-black/25 px-4 text-sm text-[var(--color-text-primary)] outline-none transition focus:border-[var(--color-border-strong)]"
-          >
-            <option value="">All fits</option>
-            {facets.genders.map((facet) => (
-              <option key={facet.value} value={facet.value}>
-                {renderOptionLabel(facet.label, facet.count)}
-              </option>
-            ))}
-          </select>
-        </label>
+        {hideGenderFilter ? null : (
+          <label className="grid min-w-0 gap-2">
+            <span className="font-[family:var(--font-supporting)] text-[10px] uppercase tracking-[0.22em] text-[var(--color-text-muted)]">
+              Gender
+            </span>
+            <select
+              name="gender"
+              defaultValue={filters.gender}
+              className="h-12 rounded-[1rem] border border-white/10 bg-black/25 px-4 text-sm text-[var(--color-text-primary)] outline-none transition focus:border-[var(--color-border-strong)]"
+            >
+              <option value="">All fits</option>
+              {facets.genders.map((facet) => (
+                <option key={facet.value} value={facet.value}>
+                  {renderOptionLabel(facet.label, facet.count)}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
 
-        <label className="grid gap-2">
+        <label className="grid min-w-0 gap-2">
           <span className="font-[family:var(--font-supporting)] text-[10px] uppercase tracking-[0.22em] text-[var(--color-text-muted)]">
             Size
           </span>
@@ -99,7 +106,7 @@ export function CatalogFilters({ facets, filters }: CatalogFiltersProps) {
           </select>
         </label>
 
-        <label className="grid gap-2">
+        <label className="grid min-w-0 gap-2">
           <span className="font-[family:var(--font-supporting)] text-[10px] uppercase tracking-[0.22em] text-[var(--color-text-muted)]">
             Price
           </span>
@@ -118,8 +125,8 @@ export function CatalogFilters({ facets, filters }: CatalogFiltersProps) {
         </label>
       </div>
 
-      <div className="mt-4 flex flex-wrap items-center gap-3">
-        <label className="grid gap-2">
+      <div className="mt-5 flex flex-col gap-4 border-t border-white/8 pt-5 sm:flex-row sm:items-end sm:justify-between">
+        <label className="grid min-w-0 gap-2 sm:min-w-52">
           <span className="font-[family:var(--font-supporting)] text-[10px] uppercase tracking-[0.22em] text-[var(--color-text-muted)]">
             Sort
           </span>
@@ -134,12 +141,14 @@ export function CatalogFilters({ facets, filters }: CatalogFiltersProps) {
             <option value="title">Title: A to Z</option>
           </select>
         </label>
-        <button
-          type="submit"
-          className="mt-6 h-11 rounded-full bg-[var(--color-accent-gold)] px-5 font-[family:var(--font-supporting)] text-[10px] uppercase tracking-[0.24em] text-black transition hover:bg-[var(--color-accent-gold-highlight)]"
-        >
-          Apply Filters
-        </button>
+        <div className="flex flex-wrap gap-3">
+          <button
+            type="submit"
+            className="h-11 rounded-full bg-[var(--color-accent-gold)] px-5 font-[family:var(--font-supporting)] text-[10px] uppercase tracking-[0.24em] text-black transition hover:bg-[var(--color-accent-gold-highlight)]"
+          >
+            Apply Filters
+          </button>
+        </div>
       </div>
     </form>
   );

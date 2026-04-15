@@ -6,16 +6,15 @@ import type {
 
 const navigation: NavigationItem[] = [
   { label: "New Drop", href: "/" },
-  { label: "Men's Line", href: "/products?gender=men" },
-  { label: "Women's Line", href: "/products?gender=women" },
-  { label: "Uniform Edit", href: "/products" },
+  { label: "Men", href: "/products?gender=men" },
+  { label: "Women", href: "/products?gender=women" },
   { label: "Stories", href: "/stories" },
 ];
 
 const utilityLinks: NavigationItem[] = [
-  { label: "Shop", href: "/products" },
-  { label: "Lookbook", href: "/stories" },
-  { label: "Flagship", href: "/products/sn-tactical-tracksuit-set" },
+  { label: "Search", href: "/products" },
+  { label: "Account", href: "/", isDisabled: true },
+  { label: "Bag", href: "/", isDisabled: true },
 ];
 
 const heroCampaign: HeroCampaign = {
@@ -23,13 +22,13 @@ const heroCampaign: HeroCampaign = {
   title: "Built Like An Army",
   statement: "Street discipline. Runway presence.",
   description:
-    "A commanding first release from Sohe's Nation: tactical layers, sharp tailoring, and statement silhouettes built to hold the whole frame.",
+    "A sharp opening release from Sohe's Nation, where tactical cuts, layered silhouettes, and runway composure meet in one disciplined line.",
   primaryCta: { label: "Shop The Drop", href: "/products" },
   secondaryCta: { label: "Enter The Story", href: "/stories/built-like-an-army" },
   campaignStats: [
-    { label: "Looks In Drop", value: "12" },
-    { label: "Lead Story", value: "01" },
-    { label: "Checkout Options", value: "02" },
+    { label: "Release Edit", value: "12 Looks" },
+    { label: "Lead Chapter", value: "Lookbook 01" },
+    { label: "Style Focus", value: "Outerwear" },
   ],
   media: {
     id: "hero-video",
