@@ -53,12 +53,12 @@ export function ProductPurchasePanel({ product }: { product: Product }) {
         </div>
         <div className="rounded-[1rem] border border-white/10 bg-black/20 px-4 py-3">
           <p className="font-[family:var(--font-supporting)] text-[10px] uppercase tracking-[0.22em] text-[var(--color-text-muted)]">
-            Availability
+            Release Status
           </p>
           <p className="mt-2 font-[family:var(--font-supporting)] text-xs uppercase tracking-[0.2em] text-[var(--color-text-primary)]">
             {activeVariant?.inventoryQuantity
-              ? `${activeVariant.inventoryQuantity} units ready`
-              : "Awaiting restock"}
+              ? "Available in the current drop"
+              : "Awaiting the next release"}
           </p>
         </div>
       </div>
@@ -119,13 +119,15 @@ export function ProductPurchasePanel({ product }: { product: Product }) {
       <div className="mt-8 grid gap-4 sm:grid-cols-2">
         <button
           type="button"
-          className="rounded-full bg-[var(--color-accent-gold)] px-5 py-4 font-[family:var(--font-supporting)] text-[10px] uppercase tracking-[0.24em] text-black transition hover:bg-[var(--color-accent-gold-highlight)]"
+          disabled
+          className="rounded-full bg-[var(--color-accent-gold)] px-5 py-4 font-[family:var(--font-supporting)] text-[10px] uppercase tracking-[0.24em] text-black opacity-60"
         >
-          Add To Cart
+          Cart Opens Soon
         </button>
         <button
           type="button"
-          className="rounded-full border border-white/10 px-5 py-4 font-[family:var(--font-supporting)] text-[10px] uppercase tracking-[0.24em] text-[var(--color-text-primary)] transition hover:border-[var(--color-border-strong)]"
+          disabled
+          className="rounded-full border border-white/10 px-5 py-4 font-[family:var(--font-supporting)] text-[10px] uppercase tracking-[0.24em] text-[var(--color-text-primary)] opacity-60"
         >
           Save For Later
         </button>

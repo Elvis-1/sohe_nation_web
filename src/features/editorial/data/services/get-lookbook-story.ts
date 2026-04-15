@@ -13,7 +13,7 @@ const lookbookStories: LookbookStory[] = [
     eyebrow: "Lookbook 01",
     title: "Built Like An Army",
     summary:
-      "A disciplined edit of the launch drop: utility layers, tactical posture, and product callouts embedded directly into the campaign frame.",
+      "A disciplined cut of the opening drop, where utility layers, sharp posture, and statement silhouettes move inside one continuous frame.",
     heroMedia: {
       type: "video",
       url: "/hero-runway.mp4",
@@ -21,19 +21,19 @@ const lookbookStories: LookbookStory[] = [
       alt: "Runway campaign film for the Built Like An Army lookbook",
     },
     chapterLabel: "Drop Narrative",
-    campaignStatement: "Street discipline. Runway presence. Product touchpoints that stay inside the story.",
+    campaignStatement: "Street discipline. Runway presence. A release story built to keep its tension from first frame to final look.",
     modules: [
       {
         title: "Frame One",
-        body: "The lookbook starts from posture rather than category: every layer should read as uniform, not just merch.",
+        body: "The story starts from posture rather than category, so every layer reads as part of the same command language.",
       },
       {
         title: "Layer Order",
-        body: "Outerwear sharpens the silhouette, the tracksuit carries the movement, and accessories finish the line cleanly.",
+        body: "Outerwear sharpens the silhouette, the tracksuit carries the movement, and the finishing pieces keep the line controlled.",
       },
       {
-        title: "Commerce Hand-off",
-        body: "Hotspots are positioned to let the story stay immersive while still giving users a direct route into the PDP.",
+        title: "Inside The Frame",
+        body: "Each hotspot lets the viewer step closer to the lead pieces without breaking the mood of the story.",
       },
     ],
     hotspots: [

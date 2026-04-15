@@ -75,7 +75,7 @@ export function NewsletterSignup() {
           No spam. Only release-critical mail.
         </p>
         <p className="font-[family:var(--font-supporting)] text-[var(--color-text-secondary)]">
-          {message ?? "Built for fixtures now, ready for provider wiring later."}
+          {message ?? "First notice stays with the list."}
         </p>
       </div>
     </form>

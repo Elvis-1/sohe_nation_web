@@ -4,16 +4,16 @@ import { Container } from "@/core/ui/container";
 
 const pillars = [
   {
-    title: "Uniform Energy",
-    body: "Every look is cut to feel disciplined, sharp, and unmistakably part of the same command language.",
+    title: "Frame The Look",
+    body: "Follow the lead silhouettes as they move from still image to full release posture.",
   },
   {
-    title: "Runway Utility",
-    body: "The collection holds both posture and movement, pairing strong lines with everyday wearability.",
+    title: "Hold The Line",
+    body: "See how the outerwear, shirting, and tactical base pieces are built to carry one clear visual language.",
   },
   {
-    title: "Story To Product",
-    body: "Editorial frames, product detail, and the buy path now move as one continuous release experience.",
+    title: "Step Inside",
+    body: "Move from the campaign frame into the lookbook and from the lookbook into the exact pieces that define it.",
   },
 ];
 
@@ -27,16 +27,16 @@ export function StoryBand() {
               Editorial Cut
             </p>
             <h2 className="mt-4 font-[family:var(--font-heading)] text-5xl uppercase leading-none text-[var(--color-text-primary)]">
-              The campaign keeps moving after the hero.
+              The drop doesn&apos;t end at the first frame.
             </h2>
             <p className="mt-5 max-w-xl text-base leading-7 text-[var(--color-text-secondary)]">
-              Step into the release story, follow the styling decisions, and move directly from the frame into the pieces that hold it together.
+              Enter the release story, follow the styling rhythm, and step deeper into the silhouettes, layers, and decisions that give the collection its command.
             </p>
             <Link
               href="/stories/built-like-an-army"
               className="mt-6 inline-flex rounded-full border border-[var(--color-border-strong)] px-5 py-3 font-[family:var(--font-supporting)] text-[10px] uppercase tracking-[0.24em] text-[var(--color-text-primary)] transition hover:bg-white/6"
             >
-              Enter Lookbook
+              Read The Lookbook
             </Link>
           </div>
           <div className="grid gap-4">

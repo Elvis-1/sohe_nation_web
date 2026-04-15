@@ -11,7 +11,7 @@ export function RelatedProducts({ products }: { products: Product[] }) {
     <ProductGrid
       eyebrow="Recommended Looks"
       title="Build the full uniform."
-      description="Related fixtures now, ready to become rule-driven recommendations once catalog services are wired to the backend."
+      description="Continue the line with complementary layers and supporting pieces drawn from the current edit."
       products={products}
     />
   );

@@ -5,7 +5,7 @@ export function ProductStoryBlocks({ detail }: { detail: ProductDetail }) {
     <section className="grid gap-5">
       <div className="rounded-[2rem] border border-[var(--color-border-subtle)] bg-[linear-gradient(180deg,rgba(29,27,24,0.98),rgba(10,10,10,0.98))] p-6 md:p-8">
         <p className="font-[family:var(--font-supporting)] text-[10px] uppercase tracking-[0.28em] text-[var(--color-accent-gold-highlight)]">
-          Campaign Read
+          The Read
         </p>
         <h2 className="mt-4 font-[family:var(--font-heading)] text-5xl uppercase leading-none text-[var(--color-text-primary)]">
           Built to hold the frame.
@@ -46,10 +46,10 @@ export function ProductStoryBlocks({ detail }: { detail: ProductDetail }) {
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
             <p className="font-[family:var(--font-supporting)] text-[10px] uppercase tracking-[0.28em] text-[var(--color-accent-gold-highlight)]">
-              Lookbook Cues
+              Styling Notes
             </p>
             <h2 className="mt-4 font-[family:var(--font-heading)] text-5xl uppercase leading-none text-[var(--color-text-primary)]">
-              Style it like a release frame.
+              Wear it with intention.
             </h2>
           </div>
           <div className="rounded-full border border-white/10 px-4 py-2 font-[family:var(--font-supporting)] text-[10px] uppercase tracking-[0.22em] text-[var(--color-text-secondary)]">

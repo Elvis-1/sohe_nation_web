@@ -105,12 +105,13 @@ export function LookbookHotspots({ story }: { story: StoryWithProducts }) {
                 >
                   Open Product
                 </Link>
-                <button
-                  type="button"
-                  className="rounded-full border border-white/10 px-4 py-3 font-[family:var(--font-supporting)] text-[10px] uppercase tracking-[0.24em] text-[var(--color-text-primary)] transition hover:border-[var(--color-border-strong)]"
+                <span
+                  aria-disabled="true"
+                  title="Available in a later phase"
+                  className="rounded-full border border-white/8 px-4 py-3 font-[family:var(--font-supporting)] text-[10px] uppercase tracking-[0.24em] text-[var(--color-text-muted)] opacity-60"
                 >
-                  Add To Cart
-                </button>
+                  Cart Later
+                </span>
               </div>
             </div>
           ) : null}

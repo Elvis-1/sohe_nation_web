@@ -26,14 +26,14 @@ export function LookbookCard({
           href={`/stories/${story.slug}`}
           className="rounded-full bg-[var(--color-accent-gold)] px-5 py-3 font-[family:var(--font-supporting)] text-[10px] uppercase tracking-[0.24em] text-black transition hover:bg-[var(--color-accent-gold-highlight)]"
         >
-          Open Lookbook
+          Enter Story
         </Link>
       </div>
 
       <div className="mt-8 grid gap-4 md:grid-cols-3">
         <div className="rounded-[1.5rem] border border-white/8 bg-black/20 p-5">
           <p className="font-[family:var(--font-supporting)] text-[10px] uppercase tracking-[0.22em] text-[var(--color-text-muted)]">
-            Chapter
+            Story Focus
           </p>
           <p className="mt-3 font-[family:var(--font-heading)] text-3xl uppercase leading-none text-[var(--color-text-primary)]">
             {story.chapterLabel}
@@ -41,15 +41,15 @@ export function LookbookCard({
         </div>
         <div className="rounded-[1.5rem] border border-white/8 bg-black/20 p-5">
           <p className="font-[family:var(--font-supporting)] text-[10px] uppercase tracking-[0.22em] text-[var(--color-text-muted)]">
-            Hotspots
+            Mood
           </p>
           <p className="mt-3 font-[family:var(--font-heading)] text-3xl uppercase leading-none text-[var(--color-text-primary)]">
-            {story.hotspots.length}
+            Tactical
           </p>
         </div>
         <div className="rounded-[1.5rem] border border-white/8 bg-black/20 p-5">
           <p className="font-[family:var(--font-supporting)] text-[10px] uppercase tracking-[0.22em] text-[var(--color-text-muted)]">
-            Linked Products
+            Lead Looks
           </p>
           <p className="mt-3 font-[family:var(--font-heading)] text-3xl uppercase leading-none text-[var(--color-text-primary)]">
             {story.linkedProducts.length}
@@ -68,10 +68,10 @@ export function LookbookIndex({ stories }: { stories: Array<LookbookStory & { li
           Editorial
         </p>
         <h1 className="mt-4 font-[family:var(--font-heading)] text-6xl uppercase leading-[0.9] text-[var(--color-text-primary)] md:text-7xl lg:text-[5.5rem]">
-          Stories with product posture.
+          Stories cut with command.
         </h1>
         <p className="mt-5 max-w-3xl text-base leading-8 text-[var(--color-text-secondary)]">
-          Lookbooks are now first-class storefront routes: campaign-led, hotspot-ready, and wired to hand shoppers off into the PDP instead of breaking the story.
+          Step deeper into the release frames, trace the styling decisions, and move through the collection the way the campaign intends it to be seen.
         </p>
       </section>
 
