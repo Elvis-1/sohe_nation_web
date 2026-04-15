@@ -1,8 +1,11 @@
 "use client";
 
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 import type { Product } from "@/core/types/commerce";
+import { useCart } from "@/features/cart-and-checkout/presentation/state/cart-provider";
 
 function uniqueValues(values: string[]) {
   return [...new Set(values)];
@@ -14,11 +17,40 @@ export function ProductPurchasePanel({ product }: { product: Product }) {
 
   const [selectedColor, setSelectedColor] = useState(colors[0] ?? "");
   const [selectedSize, setSelectedSize] = useState(sizes[0] ?? "");
+  const [hasAdded, setHasAdded] = useState(false);
+  const { addItem } = useCart();
+  const router = useRouter();
 
   const activeVariant =
     product.variants.find(
       (variant) => variant.color === selectedColor && variant.size === selectedSize,
     ) ?? product.variants[0];
+
+  function handleAddToBag() {
+    if (!activeVariant) {
+      return;
+    }
+
+    addItem({
+      product,
+      variantId: activeVariant.id,
+      quantity: 1,
+    });
+    setHasAdded(true);
+  }
+
+  function handleBuyThroughCheckout() {
+    if (!activeVariant) {
+      return;
+    }
+
+    addItem({
+      product,
+      variantId: activeVariant.id,
+      quantity: 1,
+    });
+    router.push("/checkout");
+  }
 
   return (
     <section className="rounded-[2rem] border border-[var(--color-border-subtle)] bg-[linear-gradient(180deg,rgba(31,28,25,0.98),rgba(8,8,8,0.98))] p-6 md:p-8">
@@ -119,19 +151,33 @@ export function ProductPurchasePanel({ product }: { product: Product }) {
       <div className="mt-8 grid gap-4 sm:grid-cols-2">
         <button
           type="button"
-          disabled
-          className="rounded-full bg-[var(--color-accent-gold)] px-5 py-4 font-[family:var(--font-supporting)] text-[10px] uppercase tracking-[0.24em] text-black opacity-60"
+          onClick={handleAddToBag}
+          className="rounded-full bg-[var(--color-accent-gold)] px-5 py-4 font-[family:var(--font-supporting)] text-[10px] uppercase tracking-[0.24em] text-black transition hover:bg-[var(--color-accent-gold-highlight)]"
         >
-          Cart Opens Soon
+          Add To Bag
         </button>
         <button
           type="button"
-          disabled
-          className="rounded-full border border-white/10 px-5 py-4 font-[family:var(--font-supporting)] text-[10px] uppercase tracking-[0.24em] text-[var(--color-text-primary)] opacity-60"
+          onClick={handleBuyThroughCheckout}
+          className="rounded-full border border-white/10 px-5 py-4 text-center font-[family:var(--font-supporting)] text-[10px] uppercase tracking-[0.24em] text-[var(--color-text-primary)] transition hover:border-[var(--color-border-strong)]"
         >
-          Save For Later
+          Buy Through Checkout
         </button>
       </div>
+
+      {hasAdded ? (
+        <div className="mt-4 flex flex-wrap items-center gap-3">
+          <p className="text-sm leading-7 text-[var(--color-text-secondary)]">
+            Added to bag. You can keep building the look here or move straight into the staged flow.
+          </p>
+          <Link
+            href="/bag"
+            className="rounded-full border border-white/10 px-4 py-3 font-[family:var(--font-supporting)] text-[10px] uppercase tracking-[0.22em] text-[var(--color-text-primary)] transition hover:border-[var(--color-border-strong)]"
+          >
+            View Bag
+          </Link>
+        </div>
+      ) : null}
 
       <div className="mt-8 grid gap-4 sm:grid-cols-3">
         {activeVariant?.attributes.map((attribute) => (

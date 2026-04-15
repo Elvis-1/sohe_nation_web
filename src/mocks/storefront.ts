@@ -13,8 +13,8 @@ const navigation: NavigationItem[] = [
 
 const utilityLinks: NavigationItem[] = [
   { label: "Search", href: "/products" },
-  { label: "Account", href: "/", isDisabled: true },
-  { label: "Bag", href: "/", isDisabled: true },
+  { label: "Account", href: "/account" },
+  { label: "Bag", href: "/bag" },
 ];
 
 const heroCampaign: HeroCampaign = {

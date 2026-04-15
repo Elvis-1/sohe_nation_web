@@ -6,6 +6,7 @@ import { useState } from "react";
 
 import type { NavigationItem } from "@/core/types/commerce";
 import { Container } from "@/core/ui/container";
+import { useCartSnapshot } from "@/features/cart-and-checkout/presentation/state/cart-provider";
 
 export function SiteHeader({
   navigation,
@@ -15,6 +16,7 @@ export function SiteHeader({
   utilityLinks: NavigationItem[];
 }) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const { itemCount } = useCartSnapshot();
 
   const renderUtilityItem = (item: NavigationItem, isMobile = false) =>
     item.isDisabled ? (
@@ -38,6 +40,14 @@ export function SiteHeader({
         }`}
       >
         {item.label}
+        {item.label === "Bag" ? (
+          <span
+            suppressHydrationWarning
+            className="ml-2 rounded-full border border-white/10 px-2 py-0.5 text-[9px] leading-none text-[var(--color-accent-gold-highlight)]"
+          >
+            {itemCount}
+          </span>
+        ) : null}
       </Link>
     );
 

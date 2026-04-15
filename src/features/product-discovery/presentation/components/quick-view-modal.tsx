@@ -3,8 +3,10 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect } from "react";
+import { useState } from "react";
 
 import type { Product } from "@/core/types/commerce";
+import { useCart } from "@/features/cart-and-checkout/presentation/state/cart-provider";
 
 export function QuickViewModal({
   product,
@@ -13,6 +15,9 @@ export function QuickViewModal({
   product: Product;
   onClose: () => void;
 }) {
+  const [hasAdded, setHasAdded] = useState(false);
+  const { addItem } = useCart();
+
   useEffect(() => {
     function handleEscape(event: KeyboardEvent) {
       if (event.key === "Escape") {
@@ -24,6 +29,21 @@ export function QuickViewModal({
 
     return () => window.removeEventListener("keydown", handleEscape);
   }, [onClose]);
+
+  function handleAddToBag() {
+    const variant = product.variants[0];
+
+    if (!variant) {
+      return;
+    }
+
+    addItem({
+      product,
+      variantId: variant.id,
+      quantity: 1,
+    });
+    setHasAdded(true);
+  }
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 p-4 backdrop-blur-sm md:items-center">
@@ -118,9 +138,10 @@ export function QuickViewModal({
           <div className="mt-8 flex flex-wrap gap-3">
             <button
               type="button"
+              onClick={handleAddToBag}
               className="rounded-full bg-[var(--color-accent-gold)] px-5 py-3 font-[family:var(--font-supporting)] text-[10px] uppercase tracking-[0.24em] text-black transition hover:bg-[var(--color-accent-gold-highlight)]"
             >
-              Add To Cart
+              Add To Bag
             </button>
             <Link
               href={`/products/${product.slug}`}
@@ -129,6 +150,12 @@ export function QuickViewModal({
               Open Product Page
             </Link>
           </div>
+          {hasAdded ? (
+            <p className="mt-4 text-sm leading-7 text-[var(--color-text-secondary)]">
+              Added to bag using the first available variant. The fuller selection flow remains on
+              the product page.
+            </p>
+          ) : null}
         </div>
       </div>
     </div>
