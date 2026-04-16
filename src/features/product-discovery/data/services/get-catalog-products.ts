@@ -1,6 +1,6 @@
 import type { Product } from "@/core/types/commerce";
 
-import { getMockProducts } from "../repositories/mock-product-repository";
+import { getProducts } from "../repositories/product-repository";
 
 export type CatalogSort = "featured" | "price-asc" | "price-desc" | "title";
 
@@ -131,7 +131,11 @@ function buildFacet(values: string[], labels?: Record<string, string>) {
 }
 
 export async function getCatalogProducts(filters: CatalogFilters): Promise<CatalogResult> {
-  const products = await getMockProducts();
+  const products = await getProducts({
+    category: filters.category || undefined,
+    gender: filters.gender || undefined,
+    search: filters.query || undefined,
+  });
 
   const filteredProducts = products.filter((product) => {
     const matchesCategory = !filters.category || product.category === filters.category;

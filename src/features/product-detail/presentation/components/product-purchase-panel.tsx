@@ -82,6 +82,11 @@ export function ProductPurchasePanel({ product }: { product: Product }) {
           <p className="mt-2 font-[family:var(--font-heading)] text-5xl uppercase leading-none text-[var(--color-text-primary)]">
             {activeVariant?.price.formatted ?? product.priceRange.min.formatted}
           </p>
+          {activeVariant?.compareAtPrice ? (
+            <p className="mt-1 font-[family:var(--font-supporting)] text-sm tracking-wide text-[var(--color-text-muted)] line-through">
+              {activeVariant.compareAtPrice.formatted}
+            </p>
+          ) : null}
         </div>
         <div className="rounded-[1rem] border border-white/10 bg-black/20 px-4 py-3">
           <p className="font-[family:var(--font-supporting)] text-[10px] uppercase tracking-[0.22em] text-[var(--color-text-muted)]">
@@ -125,7 +130,10 @@ export function ProductPurchasePanel({ product }: { product: Product }) {
           <div className="mt-3 flex flex-wrap gap-3">
             {sizes.map((size) => {
               const available = product.variants.some(
-                (variant) => variant.size === size && variant.color === selectedColor,
+                (variant) =>
+                  variant.size === size &&
+                  variant.color === selectedColor &&
+                  variant.inventoryQuantity > 0,
               );
 
               return (
