@@ -12,7 +12,7 @@ import {
 import { ReturnsPageShell } from "./returns-page-shell";
 
 export function AccountReturnsExperience() {
-  const { isAuthenticated } = useAccountAuth();
+  const { isAuthenticated, session } = useAccountAuth();
   const [account, setAccount] = useState<CustomerAccountData | null>(null);
 
   useEffect(() => {
@@ -24,7 +24,11 @@ export function AccountReturnsExperience() {
         return;
       }
 
-      const nextAccount = await getCustomerAccount();
+      const nextAccount = await getCustomerAccount(
+        session?.email && session?.password
+          ? { email: session.email, password: session.password }
+          : undefined,
+      );
 
       if (isActive) {
         setAccount(nextAccount);
@@ -36,7 +40,7 @@ export function AccountReturnsExperience() {
     return () => {
       isActive = false;
     };
-  }, [isAuthenticated]);
+  }, [isAuthenticated, session]);
 
   return (
     <AccountAccessGate

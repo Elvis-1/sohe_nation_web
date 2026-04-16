@@ -1,3 +1,13 @@
+export class HttpError extends Error {
+  constructor(
+    public readonly status: number,
+    message: string,
+  ) {
+    super(message);
+    this.name = "HttpError";
+  }
+}
+
 export async function httpClient<T>(
   input: RequestInfo | URL,
   init?: RequestInit,
@@ -11,7 +21,7 @@ export async function httpClient<T>(
   });
 
   if (!response.ok) {
-    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    throw new HttpError(response.status, `HTTP ${response.status}: ${response.statusText}`);
   }
 
   return (await response.json()) as T;

@@ -149,10 +149,10 @@ export function OrdersPageShell({ account }: { account: CustomerAccountData }) {
 
             <div className="mt-5 flex flex-wrap gap-3 border-t border-white/8 pt-4">
               <Link
-                href="/account"
+                href={`/account/orders/${order.id}`}
                 className="rounded-full border border-white/10 px-4 py-3 font-[family:var(--font-supporting)] text-[10px] uppercase tracking-[0.22em] text-[var(--color-text-primary)] transition hover:border-[var(--color-border-strong)]"
               >
-                Back To Account
+                View Detail
               </Link>
               <Link
                 href="/account/returns"

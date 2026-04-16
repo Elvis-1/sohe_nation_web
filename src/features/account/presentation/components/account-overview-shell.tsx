@@ -72,12 +72,12 @@ export function AccountOverviewShell({ account }: { account: CustomerAccountData
           </Link>
         </div>
 
-        <div className="relative z-10 mt-8 grid gap-4 md:grid-cols-[1.25fr_0.85fr_0.9fr]">
-          <article className="rounded-[1.75rem] border border-[var(--color-border-strong)] bg-[linear-gradient(180deg,rgba(214,165,72,0.12),rgba(0,0,0,0.12))] p-5 backdrop-blur-sm">
+        <div className="relative z-10 mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-[1.25fr_0.85fr_0.9fr]">
+          <article className="min-w-0 rounded-[1.75rem] border border-[var(--color-border-strong)] bg-[linear-gradient(180deg,rgba(214,165,72,0.12),rgba(0,0,0,0.12))] p-5 backdrop-blur-sm md:col-span-2 xl:col-span-1">
             <p className="font-[family:var(--font-supporting)] text-[10px] uppercase tracking-[0.22em] text-[var(--color-text-muted)]">
               Latest order
             </p>
-            <p className="mt-3 font-[family:var(--font-heading)] text-5xl uppercase leading-none text-[var(--color-text-primary)]">
+            <p className="mt-3 break-words font-[family:var(--font-heading)] text-4xl uppercase leading-[0.95] text-[var(--color-text-primary)] md:text-5xl">
               {latestOrder?.orderNumber ?? "No orders"}
             </p>
             <p className={`mt-3 font-[family:var(--font-supporting)] text-[10px] uppercase tracking-[0.22em] ${statusTone}`}>
@@ -102,22 +102,22 @@ export function AccountOverviewShell({ account }: { account: CustomerAccountData
               </div>
             </div>
           </article>
-          <article className="rounded-[1.5rem] border border-white/8 bg-black/25 p-5 backdrop-blur-sm">
+          <article className="min-w-0 rounded-[1.5rem] border border-white/8 bg-black/25 p-5 backdrop-blur-sm">
             <p className="font-[family:var(--font-supporting)] text-[10px] uppercase tracking-[0.22em] text-[var(--color-text-muted)]">
               Account tier
             </p>
-            <p className="mt-3 font-[family:var(--font-heading)] text-4xl uppercase leading-none text-[var(--color-text-primary)]">
+            <p className="mt-3 break-words font-[family:var(--font-heading)] text-3xl uppercase leading-[1.02] text-[var(--color-text-primary)] lg:text-4xl">
               {account.membershipTier}
             </p>
             <p className="mt-3 text-sm leading-7 text-[var(--color-text-secondary)]">
               First look at selected releases and a faster route back into active customer updates.
             </p>
           </article>
-          <article className="rounded-[1.5rem] border border-white/8 bg-black/25 p-5 backdrop-blur-sm">
+          <article className="min-w-0 rounded-[1.5rem] border border-white/8 bg-black/25 p-5 backdrop-blur-sm">
             <p className="font-[family:var(--font-supporting)] text-[10px] uppercase tracking-[0.22em] text-[var(--color-text-muted)]">
               Return status
             </p>
-            <p className="mt-3 font-[family:var(--font-heading)] text-4xl uppercase leading-none text-[var(--color-text-primary)]">
+            <p className="mt-3 break-words font-[family:var(--font-heading)] text-3xl uppercase leading-[1.02] text-[var(--color-text-primary)] lg:text-4xl">
               {submittedReturn ? "Submitted" : "Draft Open"}
             </p>
             <p className="mt-3 text-sm leading-7 text-[var(--color-text-secondary)]">
@@ -215,7 +215,7 @@ export function AccountOverviewShell({ account }: { account: CustomerAccountData
                     {order.total.formatted}
                   </p>
                   <Link
-                    href="/account/orders"
+                    href={`/account/orders/${order.id}`}
                     className="mt-3 inline-flex rounded-full border border-white/10 px-3 py-2 font-[family:var(--font-supporting)] text-[10px] uppercase tracking-[0.2em] text-[var(--color-text-primary)] transition hover:border-[var(--color-border-strong)]"
                   >
                     View Detail

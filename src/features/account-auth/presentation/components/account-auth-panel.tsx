@@ -16,19 +16,21 @@ const initialForm = {
 export function AccountAuthPanel() {
   const [mode, setMode] = useState<AccountAuthMode>("sign-in");
   const [form, setForm] = useState(initialForm);
-  const [status, setStatus] = useState<"idle" | "submitting" | "success">("idle");
-  const { signIn, register } = useAccountAuth();
+  const [status, setStatus] = useState<"idle" | "submitting" | "success" | "error">("idle");
+  const { signIn, register, authError } = useAccountAuth();
 
   async function handleSubmit() {
     setStatus("submitting");
-
-    if (mode === "sign-in") {
-      await signIn(form);
-    } else {
-      await register(form);
+    try {
+      if (mode === "sign-in") {
+        await signIn(form);
+      } else {
+        await register(form);
+      }
+      setStatus("success");
+    } catch {
+      setStatus("error");
     }
-
-    setStatus("success");
   }
 
   return (
@@ -103,6 +105,9 @@ export function AccountAuthPanel() {
               ? "Mock Sign In"
               : "Mock Create Account"}
         </button>
+        {status === "error" && authError ? (
+          <p className="text-sm text-[#ff9b8a]">{authError}</p>
+        ) : null}
       </div>
     </section>
   );

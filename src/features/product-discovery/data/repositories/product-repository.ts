@@ -6,7 +6,7 @@
  */
 
 import type { Product } from "@/core/types/commerce";
-import { httpClient } from "@/core/api/http-client";
+import { HttpError, httpClient } from "@/core/api/http-client";
 import {
   mapApiProductToStorefront,
   mapApiNarrativeToDetail,
@@ -56,7 +56,7 @@ export async function getProductBySlug(slug: string): Promise<{
       narrative: mapApiNarrativeToDetail(data.narrative),
     };
   } catch (err: unknown) {
-    if (err instanceof Error && "status" in err && (err as { status: number }).status === 404) {
+    if (err instanceof HttpError && err.status === 404) {
       return null;
     }
     throw err;

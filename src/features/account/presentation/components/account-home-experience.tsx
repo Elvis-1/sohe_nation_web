@@ -12,7 +12,7 @@ import {
 import { AccountOverviewShell } from "./account-overview-shell";
 
 export function AccountHomeExperience() {
-  const { isAuthenticated } = useAccountAuth();
+  const { isAuthenticated, session } = useAccountAuth();
   const [account, setAccount] = useState<CustomerAccountData | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -26,7 +26,11 @@ export function AccountHomeExperience() {
       }
 
       setIsLoading(true);
-      const nextAccount = await getCustomerAccount();
+      const nextAccount = await getCustomerAccount(
+        session?.email && session?.password
+          ? { email: session.email, password: session.password }
+          : undefined,
+      );
 
       if (isActive) {
         setAccount(nextAccount);
@@ -39,7 +43,7 @@ export function AccountHomeExperience() {
     return () => {
       isActive = false;
     };
-  }, [isAuthenticated]);
+  }, [isAuthenticated, session]);
 
   return (
     <AccountAccessGate
