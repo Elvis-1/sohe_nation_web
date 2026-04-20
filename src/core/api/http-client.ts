@@ -8,6 +8,17 @@ export class HttpError extends Error {
   }
 }
 
+export class ApiError extends Error {
+  constructor(
+    public readonly status: number,
+    public readonly code: string,
+    message: string,
+  ) {
+    super(message);
+    this.name = "ApiError";
+  }
+}
+
 export async function httpClient<T>(
   input: RequestInfo | URL,
   init?: RequestInit,

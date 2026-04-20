@@ -9,7 +9,7 @@ import type { CustomerAccountData } from "../../data/services/get-customer-accou
 export function AccountOverviewShell({ account }: { account: CustomerAccountData }) {
   const { session, signOut } = useAccountAuth();
   const latestOrder = account.profile.orders[0];
-  const submittedReturn = account.draftReturn.status === "submitted";
+  const latestReturn = account.returns[0] ?? null;
   const latestOrderLabel =
     latestOrder?.status === "fulfilled"
       ? "Delivered to your line"
@@ -118,12 +118,12 @@ export function AccountOverviewShell({ account }: { account: CustomerAccountData
               Return status
             </p>
             <p className="mt-3 break-words font-[family:var(--font-heading)] text-3xl uppercase leading-[1.02] text-[var(--color-text-primary)] lg:text-4xl">
-              {submittedReturn ? "Submitted" : "Draft Open"}
+              {latestReturn ? latestReturn.status.replace("_", " ") : "None"}
             </p>
             <p className="mt-3 text-sm leading-7 text-[var(--color-text-secondary)]">
-              {submittedReturn
-                ? "Your request is already logged and ready for the next update."
-                : "Your return draft is open and ready for review before submission."}
+              {latestReturn
+                ? `Latest: ${latestReturn.itemSummary}`
+                : "No return requests on file. Submit one from the returns page."}
             </p>
           </article>
         </div>
@@ -244,31 +244,30 @@ export function AccountOverviewShell({ account }: { account: CustomerAccountData
             </Link>
           </div>
           <div className="mt-5 rounded-[1.5rem] border border-white/8 bg-black/20 p-5">
-            <div className="flex flex-wrap items-start justify-between gap-4">
-              <div>
-                <p className="font-[family:var(--font-heading)] text-3xl uppercase leading-none text-[var(--color-text-primary)]">
-                  {account.draftReturn.itemTitle}
-                </p>
-                <p className="mt-3 text-sm leading-7 text-[var(--color-text-secondary)]">
-                  Return tied to {account.draftReturn.orderNumber}. Reason: {account.draftReturn.reason}
-                </p>
+            {latestReturn ? (
+              <div className="flex flex-wrap items-start justify-between gap-4">
+                <div>
+                  <p className="font-[family:var(--font-heading)] text-3xl uppercase leading-none text-[var(--color-text-primary)]">
+                    {latestReturn.itemSummary}
+                  </p>
+                  <p className="mt-3 text-sm leading-7 text-[var(--color-text-secondary)]">
+                    {latestReturn.reason}
+                  </p>
+                </div>
+                <div className="rounded-full border border-white/10 px-4 py-2 font-[family:var(--font-supporting)] text-[10px] uppercase tracking-[0.22em] text-[var(--color-accent-gold-highlight)]">
+                  {latestReturn.status.replace("_", " ")}
+                </div>
               </div>
-              <div className="rounded-full border border-white/10 px-4 py-2 font-[family:var(--font-supporting)] text-[10px] uppercase tracking-[0.22em] text-[var(--color-accent-gold-highlight)]">
-                {submittedReturn ? "Submitted" : "Draft"}
-              </div>
-            </div>
+            ) : (
+              <p className="text-sm text-[var(--color-text-secondary)]">No return requests yet.</p>
+            )}
             <div className="mt-5 flex flex-wrap gap-3 border-t border-white/8 pt-4">
               <Link
                 href="/account/returns"
                 className="rounded-full bg-[var(--color-accent-gold)] px-4 py-3 font-[family:var(--font-supporting)] text-[10px] uppercase tracking-[0.22em] text-black transition hover:bg-[var(--color-accent-gold-highlight)]"
               >
-                {submittedReturn ? "Review Return Request" : "Continue Return Request"}
+                {latestReturn ? "View Returns" : "Submit a Return"}
               </Link>
-              <p className="self-center text-sm text-[var(--color-text-secondary)]">
-                {submittedReturn
-                  ? "Next step: wait for the next account update."
-                  : "Next step: review the draft and submit when ready."}
-              </p>
             </div>
           </div>
         </div>

@@ -1,14 +1,25 @@
 import type { CustomerProfile, Money, OrderSummary } from "@/core/types/commerce";
+import { ApiError } from "@/core/api/http-client";
 
 const CHECKOUT_ORDERS_STORAGE_KEY = "sohe-storefront-checkout-orders";
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "";
 const ACCOUNT_API_BASIC_AUTH = process.env.NEXT_PUBLIC_ACCOUNT_API_BASIC_AUTH;
 
-export type ReturnDraft = {
-  orderNumber: string;
-  itemTitle: string;
+export type CustomerReturn = {
+  id: string;
+  orderId: string;
+  status: "new" | "in_review" | "approved" | "rejected" | "completed";
   reason: string;
-  status: "draft" | "submitted";
+  itemSummary: string;
+  customerNote: string;
+  requestedAt: string;
+};
+
+export type CreateReturnPayload = {
+  order_id: string;
+  item_summary: string;
+  reason: string;
+  customer_note?: string;
 };
 
 export type CustomerAccountData = {
@@ -16,7 +27,7 @@ export type CustomerAccountData = {
   membershipTier: string;
   preferredStore: string;
   savedAddress: string;
-  draftReturn: ReturnDraft;
+  returns: CustomerReturn[];
 };
 
 export type AccountApiAuth = {
@@ -74,6 +85,76 @@ const baseOrders: OrderSummary[] = [
   },
 ];
 
+type ApiAccountReturn = {
+  id: string;
+  order_id: string;
+  status: CustomerReturn["status"];
+  reason: string;
+  item_summary: string;
+  customer_note: string;
+  requested_at: string;
+};
+
+type ApiPaginatedReturns = {
+  results: ApiAccountReturn[];
+};
+
+function mapApiReturnToCustomerReturn(api: ApiAccountReturn): CustomerReturn {
+  return {
+    id: api.id,
+    orderId: api.order_id,
+    status: api.status,
+    reason: api.reason,
+    itemSummary: api.item_summary,
+    customerNote: api.customer_note,
+    requestedAt: api.requested_at.slice(0, 10),
+  };
+}
+
+async function fetchApiReturns(auth?: AccountApiAuth): Promise<CustomerReturn[]> {
+  if (!API_BASE) return [];
+
+  const response = await fetch(`${API_BASE}/account/returns/`, {
+    method: "GET",
+    credentials: "include",
+    headers: {
+      "Content-Type": "application/json",
+      ...buildOptionalAuthHeader(auth),
+    },
+  });
+
+  if (!response.ok) throw new Error(`account_returns_http_${response.status}`);
+
+  const payload = (await response.json()) as ApiPaginatedReturns;
+  return (payload.results ?? []).map(mapApiReturnToCustomerReturn);
+}
+
+export async function submitReturnRequest(
+  payload: CreateReturnPayload,
+  auth?: AccountApiAuth,
+): Promise<CustomerReturn> {
+  const response = await fetch(`${API_BASE}/account/returns/`, {
+    method: "POST",
+    credentials: "include",
+    headers: {
+      "Content-Type": "application/json",
+      ...buildOptionalAuthHeader(auth),
+    },
+    body: JSON.stringify(payload),
+  });
+
+  if (!response.ok) {
+    type ErrorBody = { error?: { code?: string; message?: string } };
+    const body = await response.json().catch(() => ({})) as ErrorBody;
+    const code = body?.error?.code ?? `http_${response.status}`;
+    const message = body?.error?.message ?? "Request failed.";
+    throw new ApiError(response.status, code, message);
+  }
+
+  const data = (await response.json()) as ApiAccountReturn;
+  return mapApiReturnToCustomerReturn(data);
+}
+
 type ApiMoney = {
   amount: number;
   currency: string;
@@ -86,6 +167,7 @@ type ApiAccountOrder = {
   created_at: string;
   status: OrderSummary["status"];
   total: ApiMoney;
+  is_return_eligible?: boolean;
 };
 
 type ApiPaginatedOrders = {
@@ -161,6 +243,7 @@ function mapApiOrderToSummary(order: ApiAccountOrder): OrderSummary {
       currency: order.total.currency as Money["currency"],
       formatted: order.total.formatted,
     },
+    isReturnEligible: order.is_return_eligible ?? false,
   };
 }
 
@@ -253,7 +336,16 @@ export async function getCustomerAccount(auth?: AccountApiAuth): Promise<Custome
     canonicalOrders = hasSessionAuth ? [] : baseOrders;
   }
 
-  const orders = mergeOrders([...persistedOrders, ...canonicalOrders]);
+  const orders = hasSessionAuth
+    ? mergeOrders(canonicalOrders)
+    : mergeOrders([...persistedOrders, ...canonicalOrders]);
+
+  let returns: CustomerReturn[] = [];
+  try {
+    returns = await fetchApiReturns(auth);
+  } catch {
+    // fall through with empty list
+  }
 
   return {
     profile: {
@@ -267,12 +359,7 @@ export async function getCustomerAccount(auth?: AccountApiAuth): Promise<Custome
     membershipTier: "Campaign Insider",
     preferredStore: "Lagos Primary Market",
     savedAddress: "Lekki Phase 1, Lagos, Nigeria",
-    draftReturn: {
-      orderNumber: "SN-1968",
-      itemTitle: "SN Command Jacket",
-      reason: "Need a sharper fit through the shoulder.",
-      status: "draft",
-    },
+    returns,
   };
 }
 

@@ -116,6 +116,7 @@ export type OrderSummary = {
   createdAt: string;
   status: "pending" | "paid" | "fulfilled" | "cancelled";
   total: Money;
+  isReturnEligible?: boolean;
 };
 
 export type CustomerProfile = {
