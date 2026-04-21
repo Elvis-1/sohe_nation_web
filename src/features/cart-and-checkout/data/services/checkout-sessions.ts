@@ -1,4 +1,5 @@
 import type { Cart, CheckoutProvider, CheckoutSession } from "@/core/types/commerce";
+import { resolveApiBaseUrl } from "@/core/api/resolve-api-base-url";
 
 type ShippingAddressInput = {
   recipientName: string;
@@ -33,7 +34,7 @@ type ApiError = {
   };
 };
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000/api/v1";
+const API_BASE = resolveApiBaseUrl();
 const STOREFRONT_BASE =
   process.env.NEXT_PUBLIC_STOREFRONT_BASE_URL ??
   (typeof window !== "undefined" ? window.location.origin : "http://localhost:3000");

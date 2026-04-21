@@ -1,9 +1,10 @@
 import { HttpError, httpClient } from "@/core/api/http-client";
+import { resolveApiBaseUrl } from "@/core/api/resolve-api-base-url";
 import type { Money, Product } from "@/core/types/commerce";
 
 import { mapHomepageCampaign } from "../mappers/map-homepage-campaign";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000/api/v1";
+const API_BASE = resolveApiBaseUrl();
 
 type ApiMoney = {
   amount: number;

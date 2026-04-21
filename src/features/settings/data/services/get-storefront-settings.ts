@@ -1,4 +1,6 @@
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000/api/v1";
+import { resolveApiBaseUrl } from "@/core/api/resolve-api-base-url";
+
+const API_BASE = resolveApiBaseUrl();
 
 export type StorefrontSettings = {
   storeName: string;

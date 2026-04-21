@@ -1,12 +1,13 @@
 import type { CustomerProfile, Money, OrderSummary } from "@/core/types/commerce";
 import { ApiError } from "@/core/api/http-client";
+import { resolveApiBaseUrl } from "@/core/api/resolve-api-base-url";
 import {
   formatAddressLine,
   listCustomerAddresses,
   type CustomerAddress,
 } from "@/features/account/data/services/account-addresses";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000/api/v1";
+const API_BASE = resolveApiBaseUrl();
 
 export type CustomerReturn = {
   id: string;

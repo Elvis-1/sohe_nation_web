@@ -29,6 +29,27 @@ function UnpublishedHomepageState() {
   );
 }
 
+function ApiUnavailableState() {
+  return (
+    <section className="py-16 md:py-24">
+      <Container>
+        <div className="rounded-[2rem] border border-[var(--color-border-subtle)] bg-[linear-gradient(180deg,rgba(30,27,23,0.92),rgba(12,12,12,0.98))] p-8 md:p-12">
+          <p className="font-[family:var(--font-supporting)] text-xs uppercase tracking-[0.3em] text-[var(--color-accent-gold-highlight)]">
+            API Unreachable
+          </p>
+          <h1 className="mt-5 font-[family:var(--font-heading)] text-5xl uppercase leading-[0.92] text-[var(--color-text-primary)] md:text-7xl">
+            Storefront backend is not reachable right now.
+          </h1>
+          <p className="mt-6 max-w-2xl text-base leading-8 text-[var(--color-text-secondary)]">
+            Confirm the API is running and that <code>API_INTERNAL_BASE_URL</code> (server) and{" "}
+            <code>NEXT_PUBLIC_API_BASE_URL</code> (browser) point to the correct backend URLs.
+          </p>
+        </div>
+      </Container>
+    </section>
+  );
+}
+
 export default async function Home() {
   try {
     const homepage = await getHomepageContent();
@@ -52,6 +73,9 @@ export default async function Home() {
   } catch (error) {
     if (error instanceof HttpError && error.status === 404) {
       return <UnpublishedHomepageState />;
+    }
+    if (error instanceof TypeError) {
+      return <ApiUnavailableState />;
     }
     throw error;
   }

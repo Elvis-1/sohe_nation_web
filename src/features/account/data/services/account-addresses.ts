@@ -1,8 +1,9 @@
 import type { RegionCode } from "@/core/types/commerce";
+import { resolveApiBaseUrl } from "@/core/api/resolve-api-base-url";
 
 import type { AccountApiAuth } from "./get-customer-account";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000/api/v1";
+const API_BASE = resolveApiBaseUrl();
 
 export type CustomerAddress = {
   id: string;
