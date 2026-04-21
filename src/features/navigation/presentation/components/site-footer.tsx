@@ -1,7 +1,8 @@
 import { Container } from "@/core/ui/container";
 import { NewsletterSignup } from "@/features/navigation/presentation/components/newsletter-signup";
+import type { StorefrontSettings } from "@/features/settings/data/services/get-storefront-settings";
 
-export function SiteFooter() {
+export function SiteFooter({ settings }: { settings: StorefrontSettings }) {
   return (
     <footer className="border-t border-white/8 bg-[rgba(8,8,8,0.92)] py-12">
       <Container className="grid gap-8 lg:grid-cols-[1.05fr_0.95fr]">
@@ -15,6 +16,17 @@ export function SiteFooter() {
           <p className="mt-5 max-w-2xl text-base leading-7 text-[var(--color-text-secondary)]">
             Stay near the next drop, the next frame, and the next shift in the line before it lands everywhere else.
           </p>
+          <div className="mt-6 flex flex-wrap gap-3">
+            <div className="rounded-full border border-white/10 bg-black/25 px-4 py-3 font-[family:var(--font-supporting)] text-[10px] uppercase tracking-[0.22em] text-[var(--color-text-primary)]">
+              {settings.storeName}
+            </div>
+            <a
+              href={`mailto:${settings.supportEmail}`}
+              className="rounded-full border border-white/10 bg-black/25 px-4 py-3 font-[family:var(--font-supporting)] text-[10px] uppercase tracking-[0.22em] text-[var(--color-text-primary)] transition hover:border-[var(--color-border-strong)]"
+            >
+              {settings.supportEmail}
+            </a>
+          </div>
           <div className="mt-8 rounded-[1.5rem] border border-white/8 bg-white/3 p-5">
             <p className="font-[family:var(--font-supporting)] text-[10px] uppercase tracking-[0.24em] text-[var(--color-text-muted)]">
               End Note

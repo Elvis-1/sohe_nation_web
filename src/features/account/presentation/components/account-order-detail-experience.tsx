@@ -6,7 +6,6 @@ import { AccountAccessGate } from "@/features/account-auth/presentation/componen
 import { useAccountAuth } from "@/features/account-auth/presentation/state/account-auth-provider";
 
 import {
-  getCustomerAccount,
   getCustomerOrderDetail,
   type CustomerOrderDetail,
 } from "../../data/services/get-customer-account";
@@ -32,8 +31,13 @@ export function AccountOrderDetailExperience({ orderId }: AccountOrderDetailExpe
       }
 
       const auth =
-        session?.email && session?.password
-          ? { email: session.email, password: session.password }
+        session?.email && session?.token
+          ? {
+              token: session.token,
+              email: session.email,
+              firstName: session.firstName,
+              lastName: session.lastName,
+            }
           : undefined;
 
       try {
@@ -47,26 +51,9 @@ export function AccountOrderDetailExperience({ orderId }: AccountOrderDetailExpe
           return;
         }
 
-        const account = await getCustomerAccount(auth);
-        const summary = account.profile.orders.find((item) => item.id === orderId);
-
         if (isActive) {
-          if (!summary) {
-            setOrder(null);
-            setIsMissing(true);
-            return;
-          }
-
-          setOrder({
-            id: summary.id,
-            orderNumber: summary.orderNumber,
-            createdAt: summary.createdAt,
-            status: summary.status,
-            total: summary.total,
-            shippingAddress: "Shipping address is not available for this order yet.",
-            lines: [],
-          });
-          setIsMissing(false);
+          setOrder(null);
+          setIsMissing(true);
         }
       } catch {
         if (isActive) {

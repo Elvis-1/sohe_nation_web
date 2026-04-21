@@ -27,8 +27,13 @@ export function AccountHomeExperience() {
 
       setIsLoading(true);
       const nextAccount = await getCustomerAccount(
-        session?.email && session?.password
-          ? { email: session.email, password: session.password }
+        session?.email && session?.token
+          ? {
+              token: session.token,
+              email: session.email,
+              firstName: session.firstName,
+              lastName: session.lastName,
+            }
           : undefined,
       );
 

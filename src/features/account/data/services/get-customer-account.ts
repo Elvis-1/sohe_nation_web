@@ -1,9 +1,12 @@
 import type { CustomerProfile, Money, OrderSummary } from "@/core/types/commerce";
 import { ApiError } from "@/core/api/http-client";
+import {
+  formatAddressLine,
+  listCustomerAddresses,
+  type CustomerAddress,
+} from "@/features/account/data/services/account-addresses";
 
-const CHECKOUT_ORDERS_STORAGE_KEY = "sohe-storefront-checkout-orders";
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "";
-const ACCOUNT_API_BASIC_AUTH = process.env.NEXT_PUBLIC_ACCOUNT_API_BASIC_AUTH;
 
 export type CustomerReturn = {
   id: string;
@@ -27,12 +30,17 @@ export type CustomerAccountData = {
   membershipTier: string;
   preferredStore: string;
   savedAddress: string;
+  addresses: CustomerAddress[];
   returns: CustomerReturn[];
+  storeName: string;
+  supportEmail: string;
 };
 
 export type AccountApiAuth = {
+  token: string;
   email: string;
-  password: string;
+  firstName?: string;
+  lastName?: string;
 };
 
 export type CustomerOrderLine = {
@@ -53,38 +61,6 @@ export type CustomerOrderDetail = {
   lines: CustomerOrderLine[];
 };
 
-function money(amount: number): Money {
-  return {
-    amount,
-    currency: "NGN",
-    formatted: `NGN ${amount.toLocaleString("en-NG")}`,
-  };
-}
-
-const baseOrders: OrderSummary[] = [
-  {
-    id: "ord_2004",
-    orderNumber: "SN-2004",
-    createdAt: "2026-04-08",
-    status: "fulfilled",
-    total: money(197000),
-  },
-  {
-    id: "ord_1968",
-    orderNumber: "SN-1968",
-    createdAt: "2026-03-22",
-    status: "paid",
-    total: money(112000),
-  },
-  {
-    id: "ord_1881",
-    orderNumber: "SN-1881",
-    createdAt: "2026-03-04",
-    status: "fulfilled",
-    total: money(64000),
-  },
-];
-
 type ApiAccountReturn = {
   id: string;
   order_id: string;
@@ -97,6 +73,11 @@ type ApiAccountReturn = {
 
 type ApiPaginatedReturns = {
   results: ApiAccountReturn[];
+};
+
+type ApiStorefrontSettings = {
+  store_name: string;
+  support_email: string;
 };
 
 function mapApiReturnToCustomerReturn(api: ApiAccountReturn): CustomerReturn {
@@ -127,6 +108,46 @@ async function fetchApiReturns(auth?: AccountApiAuth): Promise<CustomerReturn[]>
 
   const payload = (await response.json()) as ApiPaginatedReturns;
   return (payload.results ?? []).map(mapApiReturnToCustomerReturn);
+}
+
+async function fetchStorefrontSettings(): Promise<{
+  storeName: string;
+  supportEmail: string;
+}> {
+  if (!API_BASE) {
+    return {
+      storeName: "Sohe's Nation",
+      supportEmail: "support@sohesnation.com",
+    };
+  }
+
+  try {
+    const response = await fetch(`${API_BASE}/settings/storefront/`, {
+      method: "GET",
+      credentials: "include",
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
+
+    if (!response.ok) {
+      return {
+        storeName: "Sohe's Nation",
+        supportEmail: "support@sohesnation.com",
+      };
+    }
+
+    const payload = (await response.json()) as ApiStorefrontSettings;
+    return {
+      storeName: payload.store_name || "Sohe's Nation",
+      supportEmail: payload.support_email || "support@sohesnation.com",
+    };
+  } catch {
+    return {
+      storeName: "Sohe's Nation",
+      supportEmail: "support@sohesnation.com",
+    };
+  }
 }
 
 export async function submitReturnRequest(
@@ -187,51 +208,6 @@ type ApiAccountOrderDetail = ApiAccountOrder & {
   lines: ApiAccountOrderLine[];
 };
 
-function readPersistedCheckoutOrders(): OrderSummary[] {
-  if (typeof window === "undefined") {
-    return [];
-  }
-
-  try {
-    const value = window.localStorage.getItem(CHECKOUT_ORDERS_STORAGE_KEY);
-
-    if (!value) {
-      return [];
-    }
-
-    const parsed = JSON.parse(value);
-
-    return Array.isArray(parsed) ? (parsed as OrderSummary[]) : [];
-  } catch {
-    return [];
-  }
-}
-
-function writePersistedCheckoutOrders(orders: OrderSummary[]) {
-  if (typeof window === "undefined") {
-    return;
-  }
-
-  window.localStorage.setItem(CHECKOUT_ORDERS_STORAGE_KEY, JSON.stringify(orders));
-}
-
-function mergeOrders(orders: OrderSummary[]) {
-  const seen = new Set<string>();
-
-  return [...orders]
-    .sort((left, right) => right.createdAt.localeCompare(left.createdAt))
-    .filter((order) => {
-      const key = `${order.id}:${order.orderNumber}`;
-
-      if (seen.has(key)) {
-        return false;
-      }
-
-      seen.add(key);
-      return true;
-    });
-}
-
 function mapApiOrderToSummary(order: ApiAccountOrder): OrderSummary {
   return {
     id: order.id,
@@ -274,25 +250,11 @@ function mapApiOrderToDetail(order: ApiAccountOrderDetail): CustomerOrderDetail 
 }
 
 function buildOptionalAuthHeader(auth?: AccountApiAuth): Record<string, string> {
-  if (typeof window === "undefined" || typeof window.btoa !== "function") {
+  if (!auth?.token) {
     return {};
   }
 
-  if (auth?.email?.trim() && auth.password) {
-    return {
-      Authorization: `Basic ${window.btoa(`${auth.email.trim()}:${auth.password}`)}`,
-    };
-  }
-
-  if (!ACCOUNT_API_BASIC_AUTH) {
-    return {};
-  }
-
-  if (ACCOUNT_API_BASIC_AUTH.startsWith("Basic ")) {
-    return { Authorization: ACCOUNT_API_BASIC_AUTH };
-  }
-
-  return { Authorization: `Basic ${window.btoa(ACCOUNT_API_BASIC_AUTH)}` };
+  return { Authorization: `Bearer ${auth.token}` };
 }
 
 async function fetchApiOrders(auth?: AccountApiAuth): Promise<OrderSummary[]> {
@@ -317,28 +279,26 @@ async function fetchApiOrders(auth?: AccountApiAuth): Promise<OrderSummary[]> {
   return (payload.results ?? []).map(mapApiOrderToSummary);
 }
 
-export function persistMockCheckoutOrder(order: OrderSummary) {
-  const persisted = readPersistedCheckoutOrders();
-  writePersistedCheckoutOrders(mergeOrders([order, ...persisted]));
+function buildProfile(auth?: AccountApiAuth, orders: OrderSummary[] = []): CustomerProfile {
+  return {
+    id: auth?.email?.trim() || "customer-account",
+    email: auth?.email?.trim() || "",
+    firstName: auth?.firstName?.trim() || "Customer",
+    lastName: auth?.lastName?.trim() || "Account",
+    defaultRegion: "NG",
+    orders,
+  };
 }
 
 export async function getCustomerAccount(auth?: AccountApiAuth): Promise<CustomerAccountData> {
-  const persistedOrders = readPersistedCheckoutOrders();
-  const hasSessionAuth = Boolean(auth?.email?.trim() && auth?.password);
-  let canonicalOrders: OrderSummary[] = hasSessionAuth ? [] : baseOrders;
+  let orders: OrderSummary[] = [];
+  const settings = await fetchStorefrontSettings();
 
   try {
-    const apiOrders = await fetchApiOrders(auth);
-    if (hasSessionAuth || apiOrders.length > 0) {
-      canonicalOrders = apiOrders;
-    }
+    orders = await fetchApiOrders(auth);
   } catch {
-    canonicalOrders = hasSessionAuth ? [] : baseOrders;
+    orders = [];
   }
-
-  const orders = hasSessionAuth
-    ? mergeOrders(canonicalOrders)
-    : mergeOrders([...persistedOrders, ...canonicalOrders]);
 
   let returns: CustomerReturn[] = [];
   try {
@@ -347,19 +307,24 @@ export async function getCustomerAccount(auth?: AccountApiAuth): Promise<Custome
     // fall through with empty list
   }
 
+  let addresses: CustomerAddress[] = [];
+  try {
+    addresses = await listCustomerAddresses(auth);
+  } catch {
+    // fall through with empty list
+  }
+
+  const defaultAddress = addresses.find((address) => address.isDefault) ?? addresses[0] ?? null;
+
   return {
-    profile: {
-      id: "cust_sohe_fixture",
-      email: "sohe.customer@fixture.test",
-      firstName: "Ada",
-      lastName: "Okafor",
-      defaultRegion: "NG",
-      orders,
-    },
-    membershipTier: "Campaign Insider",
-    preferredStore: "Lagos Primary Market",
-    savedAddress: "Lekki Phase 1, Lagos, Nigeria",
+    profile: buildProfile(auth, orders),
+    membershipTier: "Member",
+    preferredStore: "Not set yet",
+    savedAddress: defaultAddress ? formatAddressLine(defaultAddress) : "No saved address available yet.",
+    addresses,
     returns,
+    storeName: settings.storeName,
+    supportEmail: settings.supportEmail,
   };
 }
 

@@ -150,6 +150,16 @@ export function ReturnsPageShell({ account, auth, onReturnCreated }: Props) {
           <p className="mt-4 rounded-[1rem] border border-white/10 bg-black/20 px-4 py-3 font-[family:var(--font-supporting)] text-[10px] uppercase leading-6 tracking-[0.18em] text-[var(--color-text-muted)]">
             Returns are accepted for delivered orders within 14 days of delivery. Items must be unused and in original condition.
           </p>
+          <p className="mt-3 text-sm leading-7 text-[var(--color-text-secondary)]">
+            Need help before you submit? Contact {account.storeName} at{" "}
+            <a
+              href={`mailto:${account.supportEmail}`}
+              className="text-[var(--color-accent-gold-highlight)] underline-offset-4 hover:underline"
+            >
+              {account.supportEmail}
+            </a>
+            .
+          </p>
 
           <form onSubmit={(e) => void handleSubmit(e)} className="mt-6 grid gap-4">
             <label className="grid gap-2">

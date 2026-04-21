@@ -25,8 +25,13 @@ export function AccountOrdersExperience() {
       }
 
       const nextAccount = await getCustomerAccount(
-        session?.email && session?.password
-          ? { email: session.email, password: session.password }
+        session?.email && session?.token
+          ? {
+              token: session.token,
+              email: session.email,
+              firstName: session.firstName,
+              lastName: session.lastName,
+            }
           : undefined,
       );
 
@@ -45,7 +50,7 @@ export function AccountOrdersExperience() {
   return (
     <AccountAccessGate
       title="Sign in to review order history."
-      description="The order-history UI now belongs to the customer-account feature and only opens after the mocked auth feature grants access."
+      description="The order-history UI now belongs to the customer-account feature and only opens after backend-backed customer access is granted."
     >
       {account ? (
         <OrdersPageShell account={account} />

@@ -1,94 +1,177 @@
-import type { Product } from "@/core/types/commerce";
-import { storefrontMock } from "@/mocks/storefront";
+import type { Money, Product } from "@/core/types/commerce";
+import { HttpError, httpClient } from "@/core/api/http-client";
 
 import type { LookbookStory } from "@/features/editorial/domain/entities/lookbook-story";
 
-function isProduct(product: Product | undefined): product is Product {
-  return Boolean(product);
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000/api/v1";
+
+type ApiMoney = {
+  amount: number;
+  currency: string;
+  formatted: string;
+};
+
+type ApiProduct = {
+  id: string;
+  slug: string;
+  title: string;
+  subtitle: string;
+  badge?: string;
+  description: string;
+  category: Product["category"];
+  gender: Product["gender"];
+  default_region: Product["defaultRegion"];
+  region_availability: Product["regionAvailability"];
+  media: Array<{
+    id: string;
+    alt: string;
+    kind: "image" | "video";
+    url: string;
+    poster_url?: string;
+  }>;
+  price_range: {
+    min: ApiMoney;
+    max: ApiMoney;
+  };
+  variants: Array<{
+    id: string;
+    sku: string;
+    slug: string;
+    title: string;
+    size: string;
+    color: string;
+    inventory_quantity: number;
+    is_available: boolean;
+    price: ApiMoney;
+    compare_at_price?: ApiMoney | null;
+  }>;
+};
+
+type ApiStory = {
+  slug: string;
+  eyebrow: string;
+  title: string;
+  summary: string;
+  hero_media: {
+    kind: "image" | "video";
+    url: string;
+    poster_url?: string;
+    alt: string;
+  } | null;
+  chapter_label: string;
+  campaign_statement: string;
+  modules: Array<{ title: string; body: string }>;
+  hotspots: Array<{
+    id: string;
+    label: string;
+    product_slug: string;
+    top: string;
+    left: string;
+    note: string;
+  }>;
+  linked_products: ApiProduct[];
+};
+
+function mapProduct(api: ApiProduct): Product {
+  const min: Money = {
+    amount: api.price_range.min.amount,
+    currency: api.price_range.min.currency as Money["currency"],
+    formatted: api.price_range.min.formatted,
+  };
+  const max: Money = {
+    amount: api.price_range.max.amount,
+    currency: api.price_range.max.currency as Money["currency"],
+    formatted: api.price_range.max.formatted,
+  };
+
+  return {
+    id: api.id,
+    slug: api.slug,
+    title: api.title,
+    subtitle: api.subtitle,
+    badge: api.badge,
+    description: api.description,
+    category: api.category,
+    gender: api.gender,
+    defaultRegion: api.default_region,
+    regionAvailability: api.region_availability,
+    media: api.media.map((item) => ({
+      id: item.id,
+      alt: item.alt,
+      type: item.kind,
+      url: item.url,
+      posterUrl: item.poster_url,
+    })),
+    priceRange: {
+      min,
+      max,
+    },
+    variants: api.variants.map((variant) => ({
+      id: variant.id,
+      sku: variant.sku,
+      slug: variant.slug,
+      title: variant.title,
+      size: variant.size,
+      color: variant.color,
+      inventoryQuantity: variant.inventory_quantity,
+      isAvailable: variant.is_available,
+      price: {
+        amount: variant.price.amount,
+        currency: variant.price.currency as Money["currency"],
+        formatted: variant.price.formatted,
+      },
+      compareAtPrice: variant.compare_at_price
+        ? {
+            amount: variant.compare_at_price.amount,
+            currency: variant.compare_at_price.currency as Money["currency"],
+            formatted: variant.compare_at_price.formatted,
+          }
+        : undefined,
+      attributes: [],
+    })),
+  };
 }
 
-const lookbookStories: LookbookStory[] = [
-  {
-    slug: "built-like-an-army",
-    eyebrow: "Lookbook 01",
-    title: "Built Like An Army",
-    summary:
-      "A disciplined cut of the opening drop, where utility layers, sharp posture, and statement silhouettes move inside one continuous frame.",
+function mapStory(api: ApiStory): LookbookStory & { linkedProducts: Product[] } {
+  return {
+    slug: api.slug,
+    eyebrow: api.eyebrow,
+    title: api.title,
+    summary: api.summary,
     heroMedia: {
-      type: "video",
-      url: "/hero-runway.mp4",
-      posterUrl: "/jacket_with_pant.jpeg",
-      alt: "Runway campaign film for the Built Like An Army lookbook",
+      type: api.hero_media?.kind ?? "image",
+      url: api.hero_media?.url ?? "",
+      posterUrl: api.hero_media?.poster_url,
+      alt: api.hero_media?.alt ?? api.title,
     },
-    chapterLabel: "Drop Narrative",
-    campaignStatement: "Street discipline. Runway presence. A release story built to keep its tension from first frame to final look.",
-    modules: [
-      {
-        title: "Frame One",
-        body: "The story starts from posture rather than category, so every layer reads as part of the same command language.",
-      },
-      {
-        title: "Layer Order",
-        body: "Outerwear sharpens the silhouette, the tracksuit carries the movement, and the finishing pieces keep the line controlled.",
-      },
-      {
-        title: "Inside The Frame",
-        body: "Each hotspot lets the viewer step closer to the lead pieces without breaking the mood of the story.",
-      },
-    ],
-    hotspots: [
-      {
-        id: "hotspot-tracksuit",
-        label: "Tracksuit Set",
-        productSlug: "sn-tactical-tracksuit-set",
-        top: "58%",
-        left: "44%",
-        note: "The flagship silhouette and core anchor of the drop.",
-      },
-      {
-        id: "hotspot-jacket",
-        label: "Command Jacket",
-        productSlug: "sn-command-jacket",
-        top: "34%",
-        left: "58%",
-        note: "Adds weight and command structure over the main frame.",
-      },
-      {
-        id: "hotspot-cap",
-        label: "Field Cap",
-        productSlug: "sn-field-cap",
-        top: "15%",
-        left: "51%",
-        note: "Finishes the look with a clean tactical insignia.",
-      },
-    ],
-  },
-];
+    chapterLabel: api.chapter_label,
+    campaignStatement: api.campaign_statement,
+    modules: api.modules,
+    hotspots: api.hotspots.map((hotspot) => ({
+      id: hotspot.id,
+      label: hotspot.label,
+      productSlug: hotspot.product_slug,
+      top: hotspot.top,
+      left: hotspot.left,
+      note: hotspot.note,
+    })),
+    linkedProducts: api.linked_products.map(mapProduct),
+  };
+}
 
 export async function getLookbookStories() {
-  return lookbookStories.map((story) => ({
-    ...story,
-    linkedProducts: story.hotspots
-      .map((hotspot) =>
-        storefrontMock.featuredProducts.find((product) => product.slug === hotspot.productSlug),
-      )
-      .filter(isProduct),
-  }));
+  const stories = await httpClient<ApiStory[]>(`${API_BASE}/content/stories/`);
+  return stories.map(mapStory);
 }
 
 export async function getLookbookStory(slug: string) {
-  const story = lookbookStories.find((item) => item.slug === slug);
-
-  if (!story) {
-    return null;
+  try {
+    const story = await httpClient<ApiStory>(`${API_BASE}/content/stories/${slug}/`);
+    return mapStory(story);
+  } catch (error) {
+    if (error instanceof HttpError && error.status === 404) {
+      return null;
+    }
+    throw error;
   }
-
-  return {
-    ...story,
-    linkedProducts: story.hotspots
-      .map((hotspot) =>
-        storefrontMock.featuredProducts.find((product) => product.slug === hotspot.productSlug),
-      )
-      .filter(isProduct),
-  };
 }

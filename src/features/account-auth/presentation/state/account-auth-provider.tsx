@@ -12,15 +12,15 @@ import {
 const STORAGE_KEY = "sohe-storefront-account-session";
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "";
 
-export type MockAccountSession = {
+export type AccountSession = {
   isAuthenticated: boolean;
+  token: string;
+  expiresAt: number;
   email: string;
-  password?: string;
   firstName: string;
   lastName: string;
+  emailVerified: boolean;
 };
-
-type AccountAuthMode = "sign-in" | "register";
 
 type AccountAuthInput = {
   email: string;
@@ -29,93 +29,180 @@ type AccountAuthInput = {
   lastName?: string;
 };
 
+type AuthPayload = {
+  token: string;
+  expires_at: string;
+  user: {
+    email: string;
+    first_name: string;
+    last_name: string;
+    is_staff: boolean;
+    email_verified: boolean;
+  };
+};
+
+type ApiErrorPayload = {
+  error?: {
+    message?: string;
+  };
+};
+
 type AccountAuthContextValue = {
-  session: MockAccountSession | null;
+  session: AccountSession | null;
   isAuthenticated: boolean;
   isReady: boolean;
   authError: string | null;
   signIn: (input: AccountAuthInput) => Promise<void>;
   register: (input: AccountAuthInput) => Promise<void>;
-  signOut: () => void;
+  signOut: () => Promise<void>;
+  requestPasswordReset: (email: string) => Promise<string>;
+  confirmPasswordReset: (token: string, password: string) => Promise<string>;
+  resendEmailVerification: (email: string) => Promise<string>;
+  confirmEmailVerification: (token: string) => Promise<string>;
 };
 
 const AccountAuthContext = createContext<AccountAuthContextValue | null>(null);
 
-function readStoredSession(): MockAccountSession | null {
+function readStoredSession(): AccountSession | null {
   if (typeof window === "undefined") {
     return null;
   }
 
   try {
     const value = window.localStorage.getItem(STORAGE_KEY);
-
     if (!value) {
       return null;
     }
 
-    const parsed = JSON.parse(value);
-
-    if (!parsed || typeof parsed !== "object") {
+    const parsed = JSON.parse(value) as AccountSession;
+    if (parsed.expiresAt <= Date.now()) {
+      window.localStorage.removeItem(STORAGE_KEY);
       return null;
     }
 
-    return parsed as MockAccountSession;
+    return parsed;
   } catch {
     return null;
   }
 }
 
-function buildSession(input: AccountAuthInput, mode: AccountAuthMode): MockAccountSession {
+function toSession(payload: AuthPayload): AccountSession {
   return {
     isAuthenticated: true,
-    email: input.email.trim(),
-    // Temporary bridge for Slice 2: keep credentials in mocked session so
-    // account/order API calls can be scoped to the signed-in customer.
-    password: input.password,
-    firstName: input.firstName?.trim() || (mode === "register" ? "New" : "Ada"),
-    lastName: input.lastName?.trim() || (mode === "register" ? "Member" : "Okafor"),
+    token: payload.token,
+    expiresAt: new Date(payload.expires_at).getTime(),
+    email: payload.user.email,
+    firstName: payload.user.first_name || "Customer",
+    lastName: payload.user.last_name || "Account",
+    emailVerified: payload.user.email_verified,
   };
 }
 
-async function verifyAccountCredentials(input: AccountAuthInput): Promise<void> {
-  if (!API_BASE) {
-    return;
-  }
-
-  if (!input.email.trim() || !input.password) {
-    throw new Error("Enter both email and password.");
-  }
-
-  const encoded = window.btoa(`${input.email.trim()}:${input.password}`);
-  const response = await fetch(`${API_BASE}/account/orders/`, {
-    method: "GET",
+async function postAuth(path: string, body: Record<string, string>) {
+  const response = await fetch(`${API_BASE}${path}`, {
+    method: "POST",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Basic ${encoded}`,
     },
+    body: JSON.stringify(body),
   });
 
-  if (response.status === 401 || response.status === 403) {
-    throw new Error("Invalid account credentials.");
+  const payload = (await response.json().catch(() => null)) as AuthPayload | ApiErrorPayload | null;
+
+  if (!response.ok || !payload || "error" in payload) {
+    throw new Error(
+      payload && "error" in payload
+        ? payload.error?.message ?? "Unable to complete account auth."
+        : "Unable to complete account auth.",
+    );
   }
 
+  return payload as AuthPayload;
+}
+
+async function postAnonymous(path: string, body: Record<string, string>) {
+  const response = await fetch(`${API_BASE}${path}`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(body),
+  });
+
+  const payload = (await response.json().catch(() => null)) as
+    | { message?: string }
+    | ApiErrorPayload
+    | null;
+
   if (!response.ok) {
-    throw new Error("Account sign-in is temporarily unavailable.");
+    throw new Error(
+      payload && "error" in payload
+        ? payload.error?.message ?? "Unable to complete this request."
+        : "Unable to complete this request.",
+    );
   }
+
+  if (payload && "message" in payload && typeof payload.message === "string") {
+    return payload.message;
+  }
+  return "Request completed.";
 }
 
 export function AccountAuthProvider({ children }: { children: ReactNode }) {
-  const [session, setSession] = useState<MockAccountSession | null>(null);
+  const [session, setSession] = useState<AccountSession | null>(null);
   const [isReady, setIsReady] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
 
   useEffect(() => {
-    const frame = window.requestAnimationFrame(() => {
-      setSession(readStoredSession());
-      setIsReady(true);
-    });
+    let isActive = true;
 
-    return () => window.cancelAnimationFrame(frame);
+    async function restoreSession() {
+      const stored = readStoredSession();
+      if (!stored || !API_BASE) {
+        if (isActive) {
+          setSession(stored);
+          setIsReady(true);
+        }
+        return;
+      }
+
+      try {
+        const response = await fetch(`${API_BASE}/auth/customer/session/`, {
+          headers: {
+            Authorization: `Bearer ${stored.token}`,
+          },
+        });
+
+        if (!response.ok) {
+          window.localStorage.removeItem(STORAGE_KEY);
+          if (isActive) {
+            setSession(null);
+            setIsReady(true);
+          }
+          return;
+        }
+
+        const payload = (await response.json()) as AuthPayload;
+        const nextSession = toSession(payload);
+        window.localStorage.setItem(STORAGE_KEY, JSON.stringify(nextSession));
+
+        if (isActive) {
+          setSession(nextSession);
+          setIsReady(true);
+        }
+      } catch {
+        if (isActive) {
+          setSession(stored);
+          setIsReady(true);
+        }
+      }
+    }
+
+    void restoreSession();
+
+    return () => {
+      isActive = false;
+    };
   }, []);
 
   useEffect(() => {
@@ -140,8 +227,11 @@ export function AccountAuthProvider({ children }: { children: ReactNode }) {
       signIn: async (input) => {
         setAuthError(null);
         try {
-          await verifyAccountCredentials(input);
-          setSession(buildSession(input, "sign-in"));
+          const payload = await postAuth("/auth/customer/login/", {
+            email: input.email.trim(),
+            password: input.password,
+          });
+          setSession(toSession(payload));
         } catch (error) {
           setSession(null);
           setAuthError(error instanceof Error ? error.message : "Unable to sign in.");
@@ -150,11 +240,85 @@ export function AccountAuthProvider({ children }: { children: ReactNode }) {
       },
       register: async (input) => {
         setAuthError(null);
-        setSession(buildSession(input, "register"));
+        try {
+          const payload = await postAuth("/auth/customer/register/", {
+            email: input.email.trim(),
+            password: input.password,
+            first_name: input.firstName?.trim() || "Customer",
+            last_name: input.lastName?.trim() || "Account",
+          });
+          setSession(toSession(payload));
+        } catch (error) {
+          setSession(null);
+          setAuthError(error instanceof Error ? error.message : "Unable to register.");
+          throw error;
+        }
       },
-      signOut: () => {
+      signOut: async () => {
         setAuthError(null);
+        if (session?.token) {
+          await fetch(`${API_BASE}/auth/customer/session/`, {
+            method: "DELETE",
+            headers: {
+              Authorization: `Bearer ${session.token}`,
+            },
+          }).catch(() => undefined);
+        }
         setSession(null);
+      },
+      requestPasswordReset: async (email: string) => {
+        setAuthError(null);
+        try {
+          return await postAnonymous("/auth/customer/password-reset/request/", {
+            email: email.trim(),
+          });
+        } catch (error) {
+          setAuthError(error instanceof Error ? error.message : "Unable to request password reset.");
+          throw error;
+        }
+      },
+      confirmPasswordReset: async (token: string, password: string) => {
+        setAuthError(null);
+        try {
+          return await postAnonymous("/auth/customer/password-reset/confirm/", {
+            token: token.trim(),
+            password,
+          });
+        } catch (error) {
+          setAuthError(error instanceof Error ? error.message : "Unable to reset password.");
+          throw error;
+        }
+      },
+      resendEmailVerification: async (email: string) => {
+        setAuthError(null);
+        try {
+          return await postAnonymous("/auth/customer/email-verification/resend/", {
+            email: email.trim(),
+          });
+        } catch (error) {
+          setAuthError(error instanceof Error ? error.message : "Unable to resend verification email.");
+          throw error;
+        }
+      },
+      confirmEmailVerification: async (token: string) => {
+        setAuthError(null);
+        try {
+          const message = await postAnonymous("/auth/customer/email-verification/confirm/", {
+            token: token.trim(),
+          });
+          setSession((current) =>
+            current
+              ? {
+                  ...current,
+                  emailVerified: true,
+                }
+              : current,
+          );
+          return message;
+        } catch (error) {
+          setAuthError(error instanceof Error ? error.message : "Unable to verify email.");
+          throw error;
+        }
       },
     }),
     [authError, isReady, session],

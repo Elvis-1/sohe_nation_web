@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import type { HeroCampaign as HeroCampaignType } from "@/core/types/commerce";
 import { Container } from "@/core/ui/container";
+import { safeHref } from "@/core/utils/safe-href";
 
 export function HeroCampaign({
   campaign,
@@ -31,13 +32,13 @@ export function HeroCampaign({
 
               <div className="flex flex-wrap gap-4">
                 <Link
-                  href={campaign.primaryCta.href}
+                  href={safeHref(campaign.primaryCta.href)}
                   className="rounded-full bg-[var(--color-accent-gold)] px-6 py-3 font-[family:var(--font-supporting)] text-xs uppercase tracking-[0.24em] text-black transition hover:bg-[var(--color-accent-gold-highlight)]"
                 >
                   {campaign.primaryCta.label}
                 </Link>
                 <Link
-                  href={campaign.secondaryCta.href}
+                  href={safeHref(campaign.secondaryCta.href)}
                   className="rounded-full border border-[var(--color-border-strong)] px-6 py-3 font-[family:var(--font-supporting)] text-xs uppercase tracking-[0.24em] text-[var(--color-text-primary)] transition hover:bg-white/6"
                 >
                   {campaign.secondaryCta.label}
@@ -46,16 +47,24 @@ export function HeroCampaign({
             </div>
 
             <div className="relative min-h-[28rem] overflow-hidden rounded-[1.6rem] border border-white/10 bg-black/35">
-              <video
-                autoPlay
-                muted
-                loop
-                playsInline
-                poster={campaign.media.posterUrl}
-                className="absolute inset-0 h-full w-full object-cover opacity-70"
-              >
-                <source src={campaign.media.url} />
-              </video>
+              {campaign.media.type === "video" ? (
+                <video
+                  autoPlay
+                  muted
+                  loop
+                  playsInline
+                  poster={campaign.media.posterUrl}
+                  className="absolute inset-0 h-full w-full object-cover opacity-70"
+                >
+                  <source src={campaign.media.url} />
+                </video>
+              ) : (
+                <img
+                  src={campaign.media.url}
+                  alt={campaign.media.alt}
+                  className="absolute inset-0 h-full w-full object-cover opacity-70"
+                />
+              )}
               <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(0,0,0,0.16),rgba(0,0,0,0.7))]" />
               <div className="absolute inset-x-0 bottom-0 flex items-end justify-between gap-6 p-6">
                 <div>

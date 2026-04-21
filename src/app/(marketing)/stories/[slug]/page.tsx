@@ -5,6 +5,8 @@ import { getLookbookStory } from "@/features/editorial/data/services/get-lookboo
 import { LookbookHotspots } from "@/features/editorial/presentation/components/lookbook-hotspots";
 import { RelatedProducts } from "@/features/product-detail/presentation/components/related-products";
 
+export const dynamic = "force-dynamic";
+
 export default async function StoryPage({
   params,
 }: {

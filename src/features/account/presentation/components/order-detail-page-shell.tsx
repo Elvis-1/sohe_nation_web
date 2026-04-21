@@ -106,8 +106,7 @@ export function OrderDetailPageShell({ order }: OrderDetailPageShellProps) {
                 No line details yet.
               </p>
               <p className="mt-3 text-sm leading-7 text-[var(--color-text-secondary)]">
-                This order was staged in fixture mode. Line items will appear once full order detail
-                sync is available for this entry.
+                This order detail is not currently returning line items from the API for this entry.
               </p>
             </article>
           )}

@@ -1,13 +1,16 @@
 "use client";
 
 import Link from "next/link";
+import { useState } from "react";
 
 import { useAccountAuth } from "@/features/account-auth/presentation/state/account-auth-provider";
 
 import type { CustomerAccountData } from "../../data/services/get-customer-account";
 
 export function AccountOverviewShell({ account }: { account: CustomerAccountData }) {
-  const { session, signOut } = useAccountAuth();
+  const { session, signOut, resendEmailVerification } = useAccountAuth();
+  const [verificationStatus, setVerificationStatus] = useState<"idle" | "submitting" | "success" | "error">("idle");
+  const [verificationMessage, setVerificationMessage] = useState<string | null>(null);
   const latestOrder = account.profile.orders[0];
   const latestReturn = account.returns[0] ?? null;
   const latestOrderLabel =
@@ -23,6 +26,22 @@ export function AccountOverviewShell({ account }: { account: CustomerAccountData
       : latestOrder?.status === "paid"
         ? "text-[var(--color-accent-gold-highlight)]"
         : "text-[var(--color-text-secondary)]";
+
+  async function handleResendVerification() {
+    if (!session?.email) return;
+    setVerificationStatus("submitting");
+    setVerificationMessage(null);
+    try {
+      const message = await resendEmailVerification(session.email);
+      setVerificationStatus("success");
+      setVerificationMessage(message);
+    } catch (error) {
+      setVerificationStatus("error");
+      setVerificationMessage(
+        error instanceof Error ? error.message : "Unable to resend verification email.",
+      );
+    }
+  }
 
   return (
     <div className="grid gap-6 xl:grid-cols-[1.05fr_0.95fr]">
@@ -56,6 +75,44 @@ export function AccountOverviewShell({ account }: { account: CustomerAccountData
           Track the newest delivery, keep your return request moving, and step straight back into
           the next chapter of the drop without losing the campaign rhythm.
         </p>
+
+        {!session?.emailVerified ? (
+          <div className="relative z-10 mt-6 rounded-[1.5rem] border border-[var(--color-border-strong)] bg-[rgba(214,165,72,0.1)] p-5">
+            <p className="font-[family:var(--font-supporting)] text-[10px] uppercase tracking-[0.22em] text-[var(--color-accent-gold-highlight)]">
+              Email Verification Pending
+            </p>
+            <p className="mt-3 max-w-2xl text-sm leading-7 text-[var(--color-text-secondary)]">
+              Verify your email to secure your account recovery flow and keep account messaging reliable.
+            </p>
+            <div className="mt-4 flex flex-wrap gap-3">
+              <button
+                type="button"
+                onClick={handleResendVerification}
+                disabled={verificationStatus === "submitting"}
+                className="rounded-full border border-white/10 bg-black/20 px-4 py-3 font-[family:var(--font-supporting)] text-[10px] uppercase tracking-[0.22em] text-[var(--color-text-primary)] transition hover:border-[var(--color-border-strong)] disabled:opacity-60"
+              >
+                {verificationStatus === "submitting" ? "Sending..." : "Resend verification email"}
+              </button>
+              <Link
+                href="/account/verify-email"
+                className="rounded-full border border-white/10 bg-black/20 px-4 py-3 font-[family:var(--font-supporting)] text-[10px] uppercase tracking-[0.22em] text-[var(--color-text-primary)] transition hover:border-[var(--color-border-strong)]"
+              >
+                Open verification page
+              </Link>
+            </div>
+            {verificationMessage ? (
+              <p
+                className={`mt-3 text-xs ${
+                  verificationStatus === "error"
+                    ? "text-[#ff9b8a]"
+                    : "text-[var(--color-text-secondary)]"
+                }`}
+              >
+                {verificationMessage}
+              </p>
+            ) : null}
+          </div>
+        ) : null}
 
         <div className="relative z-10 mt-8 flex flex-wrap gap-3">
           <Link
@@ -160,6 +217,26 @@ export function AccountOverviewShell({ account }: { account: CustomerAccountData
               <p className="mt-3 text-sm leading-7 text-[var(--color-text-secondary)]">
                 {account.savedAddress}
               </p>
+              <Link
+                href="/account/addresses"
+                className="mt-4 inline-flex rounded-full border border-white/10 px-4 py-3 font-[family:var(--font-supporting)] text-[10px] uppercase tracking-[0.2em] text-[var(--color-text-primary)] transition hover:border-[var(--color-border-strong)]"
+              >
+                Manage addresses
+              </Link>
+            </article>
+            <article className="rounded-[1.5rem] border border-white/8 bg-black/20 p-5 md:col-span-2">
+              <p className="font-[family:var(--font-supporting)] text-[10px] uppercase tracking-[0.22em] text-[var(--color-text-muted)]">
+                Support contact
+              </p>
+              <p className="mt-3 font-[family:var(--font-heading)] text-3xl uppercase leading-none text-[var(--color-text-primary)]">
+                {account.storeName}
+              </p>
+              <a
+                href={`mailto:${account.supportEmail}`}
+                className="mt-4 inline-flex rounded-full border border-white/10 px-4 py-3 font-[family:var(--font-supporting)] text-[10px] uppercase tracking-[0.22em] text-[var(--color-text-primary)] transition hover:border-[var(--color-border-strong)]"
+              >
+                {account.supportEmail}
+              </a>
             </article>
           </div>
         </div>

@@ -1,11 +1,16 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
-import type { CheckoutProvider } from "@/core/types/commerce";
+import type { CheckoutProvider, RegionCode } from "@/core/types/commerce";
 import { useAccountAuth } from "@/features/account-auth/presentation/state/account-auth-provider";
-import { persistMockCheckoutOrder } from "@/features/account/data/services/get-customer-account";
+import {
+  createCustomerAddress,
+  formatAddressLine,
+  listCustomerAddresses,
+  type CustomerAddress,
+} from "@/features/account/data/services/account-addresses";
 
 import { createMockCheckoutSession } from "../../data/repositories/mock-cart-repository";
 import { useCart } from "../state/cart-provider";
@@ -23,25 +28,116 @@ const providerLabels: Record<CheckoutProvider, { title: string; body: string }> 
 
 export function CheckoutPageShell() {
   const { cart, clearCart } = useCart();
-  const { isAuthenticated } = useAccountAuth();
+  const { isAuthenticated, session } = useAccountAuth();
   const [provider, setProvider] = useState<CheckoutProvider>("paypal");
   const [status, setStatus] = useState<"idle" | "submitting" | "success">("idle");
   const [sessionId, setSessionId] = useState("");
+  const [formError, setFormError] = useState<string | null>(null);
+  const [defaultAddress, setDefaultAddress] = useState<CustomerAddress | null>(null);
+  const [saveAddress, setSaveAddress] = useState(false);
+  const [shippingAddress, setShippingAddress] = useState({
+    recipientName: "",
+    phone: "",
+    line1: "",
+    line2: "",
+    city: "",
+    state: "",
+    postalCode: "",
+    countryCode: "NG" as RegionCode,
+  });
   const selectedProvider = providerLabels[provider];
 
+  useEffect(() => {
+    let isActive = true;
+
+    async function hydrateAddress() {
+      if (!session?.token || !session.email) {
+        if (isActive) {
+          setDefaultAddress(null);
+        }
+        return;
+      }
+
+      try {
+        const list = await listCustomerAddresses({
+          token: session.token,
+          email: session.email,
+          firstName: session.firstName,
+          lastName: session.lastName,
+        });
+        const found = list.find((address) => address.isDefault) ?? list[0] ?? null;
+        if (!isActive) return;
+        setDefaultAddress(found);
+        if (found) {
+          setShippingAddress({
+            recipientName: found.recipientName,
+            phone: found.phone,
+            line1: found.line1,
+            line2: found.line2,
+            city: found.city,
+            state: found.state,
+            postalCode: found.postalCode,
+            countryCode: found.countryCode,
+          });
+        }
+      } catch {
+        if (isActive) setDefaultAddress(null);
+      }
+    }
+
+    void hydrateAddress();
+    return () => {
+      isActive = false;
+    };
+  }, [session]);
+
   async function handleCheckout() {
+    if (!shippingAddress.recipientName.trim() || !shippingAddress.line1.trim() || !shippingAddress.city.trim() || !shippingAddress.state.trim()) {
+      setFormError("Recipient, address line, city, and state are required before checkout.");
+      return;
+    }
+    if ((shippingAddress.countryCode === "US" || shippingAddress.countryCode === "GB") && !shippingAddress.postalCode.trim()) {
+      setFormError("Postal code is required for US and GB addresses.");
+      return;
+    }
+
     setStatus("submitting");
-    const session = await createMockCheckoutSession(cart, provider);
+    setFormError(null);
 
-    persistMockCheckoutOrder({
-      id: `ord_${session.id}`,
-      orderNumber: `SN-${session.id.slice(-4).toUpperCase()}`,
-      createdAt: new Date().toISOString().slice(0, 10),
-      status: "paid",
-      total: cart.summary.total,
-    });
+    if (saveAddress && isAuthenticated && session?.token && session.email) {
+      try {
+        await createCustomerAddress(
+          {
+            label: "Checkout Address",
+            recipientName: shippingAddress.recipientName,
+            phone: shippingAddress.phone,
+            line1: shippingAddress.line1,
+            line2: shippingAddress.line2,
+            city: shippingAddress.city,
+            state: shippingAddress.state,
+            postalCode: shippingAddress.postalCode,
+            countryCode: shippingAddress.countryCode,
+            isDefault: true,
+          },
+          {
+            token: session.token,
+            email: session.email,
+            firstName: session.firstName,
+            lastName: session.lastName,
+          },
+        );
+      } catch (error) {
+        setFormError(
+          error instanceof Error
+            ? `Checkout can continue, but address save failed: ${error.message}`
+            : "Checkout can continue, but we could not save this address.",
+        );
+      }
+    }
 
-    setSessionId(session.id);
+    const checkoutSession = await createMockCheckoutSession(cart, provider);
+
+    setSessionId(checkoutSession.id);
     setStatus("success");
   }
 
@@ -130,25 +226,73 @@ export function CheckoutPageShell() {
           <div className="min-w-0 space-y-4">
             <article className="min-w-0 rounded-[1.5rem] border border-white/8 bg-black/25 p-5 backdrop-blur-sm">
               <p className="font-[family:var(--font-supporting)] text-[10px] uppercase tracking-[0.22em] text-[var(--color-text-muted)]">
-                Contact
+                Shipping Contact
               </p>
-              <p className="mt-3 min-w-0 break-words font-[family:var(--font-heading)] text-2xl uppercase leading-none text-[var(--color-text-primary)] lg:text-3xl">
-                sohe.customer@fixture.test
-              </p>
-              <p className="mt-3 text-sm leading-7 text-[var(--color-text-secondary)]">
-                +234 800 000 0000
-              </p>
+              <div className="mt-3 grid gap-3">
+                <input
+                  value={shippingAddress.recipientName}
+                  onChange={(event) => setShippingAddress((current) => ({ ...current, recipientName: event.target.value }))}
+                  placeholder="Recipient name"
+                  className="h-11 rounded-[0.9rem] border border-white/10 bg-black/20 px-3 text-sm text-[var(--color-text-primary)] outline-none transition focus:border-[var(--color-border-strong)]"
+                />
+                <input
+                  value={shippingAddress.phone}
+                  onChange={(event) => setShippingAddress((current) => ({ ...current, phone: event.target.value }))}
+                  placeholder="Phone number"
+                  className="h-11 rounded-[0.9rem] border border-white/10 bg-black/20 px-3 text-sm text-[var(--color-text-primary)] outline-none transition focus:border-[var(--color-border-strong)]"
+                />
+              </div>
             </article>
             <article className="min-w-0 rounded-[1.5rem] border border-white/8 bg-black/25 p-5 backdrop-blur-sm">
               <p className="font-[family:var(--font-supporting)] text-[10px] uppercase tracking-[0.22em] text-[var(--color-text-muted)]">
-                Delivery
+                Delivery Address
               </p>
-              <p className="mt-3 font-[family:var(--font-heading)] text-3xl uppercase leading-none text-[var(--color-text-primary)]">
-                Lekki Phase 1
-              </p>
-              <p className="mt-3 text-sm leading-7 text-[var(--color-text-secondary)]">
-                Standard dispatch in 3-5 days.
-              </p>
+              <div className="mt-3 grid gap-3">
+                <input
+                  value={shippingAddress.line1}
+                  onChange={(event) => setShippingAddress((current) => ({ ...current, line1: event.target.value }))}
+                  placeholder="Address line 1"
+                  className="h-11 rounded-[0.9rem] border border-white/10 bg-black/20 px-3 text-sm text-[var(--color-text-primary)] outline-none transition focus:border-[var(--color-border-strong)]"
+                />
+                <input
+                  value={shippingAddress.line2}
+                  onChange={(event) => setShippingAddress((current) => ({ ...current, line2: event.target.value }))}
+                  placeholder="Address line 2 (optional)"
+                  className="h-11 rounded-[0.9rem] border border-white/10 bg-black/20 px-3 text-sm text-[var(--color-text-primary)] outline-none transition focus:border-[var(--color-border-strong)]"
+                />
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <input
+                    value={shippingAddress.city}
+                    onChange={(event) => setShippingAddress((current) => ({ ...current, city: event.target.value }))}
+                    placeholder="City"
+                    className="h-11 rounded-[0.9rem] border border-white/10 bg-black/20 px-3 text-sm text-[var(--color-text-primary)] outline-none transition focus:border-[var(--color-border-strong)]"
+                  />
+                  <input
+                    value={shippingAddress.state}
+                    onChange={(event) => setShippingAddress((current) => ({ ...current, state: event.target.value }))}
+                    placeholder="State / Province"
+                    className="h-11 rounded-[0.9rem] border border-white/10 bg-black/20 px-3 text-sm text-[var(--color-text-primary)] outline-none transition focus:border-[var(--color-border-strong)]"
+                  />
+                </div>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <select
+                    value={shippingAddress.countryCode}
+                    onChange={(event) => setShippingAddress((current) => ({ ...current, countryCode: event.target.value as RegionCode }))}
+                    className="h-11 rounded-[0.9rem] border border-white/10 bg-black/20 px-3 text-sm text-[var(--color-text-primary)] outline-none transition focus:border-[var(--color-border-strong)]"
+                  >
+                    <option value="NG">Nigeria</option>
+                    <option value="US">United States</option>
+                    <option value="GB">United Kingdom</option>
+                    <option value="EU">European Union</option>
+                  </select>
+                  <input
+                    value={shippingAddress.postalCode}
+                    onChange={(event) => setShippingAddress((current) => ({ ...current, postalCode: event.target.value }))}
+                    placeholder="Postal code"
+                    className="h-11 rounded-[0.9rem] border border-white/10 bg-black/20 px-3 text-sm text-[var(--color-text-primary)] outline-none transition focus:border-[var(--color-border-strong)]"
+                  />
+                </div>
+              </div>
             </article>
           </div>
 
@@ -252,6 +396,26 @@ export function CheckoutPageShell() {
               {cart.summary.total.formatted}
             </span>
           </div>
+          {defaultAddress ? (
+            <p className="mt-4 rounded-[1rem] border border-white/10 bg-black/20 px-4 py-3 text-sm text-[var(--color-text-secondary)]">
+              Default address on file: {formatAddressLine(defaultAddress)}
+            </p>
+          ) : null}
+          <label className="mt-4 inline-flex items-center gap-2 text-sm text-[var(--color-text-secondary)]">
+            <input
+              type="checkbox"
+              checked={saveAddress}
+              onChange={(event) => setSaveAddress(event.target.checked)}
+              disabled={!isAuthenticated}
+            />
+            Save this shipping address to my account
+          </label>
+          {!isAuthenticated ? (
+            <p className="mt-2 text-xs text-[var(--color-text-muted)]">
+              Sign in to save addresses for later checkouts.
+            </p>
+          ) : null}
+          {formError ? <p className="mt-3 text-sm text-[#ff9b8a]">{formError}</p> : null}
           <button
             type="button"
             disabled={status === "submitting"}
@@ -284,8 +448,11 @@ export function CheckoutPageShell() {
             </h3>
             <p className="mt-4 text-sm leading-7 text-[var(--color-text-secondary)]">
               Session <span className="text-[var(--color-text-primary)]">{sessionId}</span> is ready
-              for redirect handling through {selectedProvider.title}. In Phase 5 this panel can
-              yield to real provider return states and order reconciliation.
+              for redirect handling through {selectedProvider.title}. Order history will only update
+              after a real API-backed checkout creates and reconciles an order.
+            </p>
+            <p className="mt-3 text-sm text-[var(--color-text-secondary)]">
+              Shipping snapshot prepared for: {shippingAddress.line1}, {shippingAddress.city}, {shippingAddress.state}.
             </p>
             <div className="mt-5 flex flex-wrap gap-3">
               <button

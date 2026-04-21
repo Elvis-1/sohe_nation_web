@@ -12,7 +12,7 @@ export type EndpointDefinition = {
 export const apiEndpoints = {
   campaignHome: {
     method: "GET",
-    path: "/api/v1/content/home",
+    path: "/api/v1/content/homepage",
     auth: "public",
     description: "Returns homepage campaign modules, hero content, and featured rails.",
   },
@@ -65,6 +65,12 @@ export const apiEndpoints = {
     path: "/api/v1/account/orders",
     auth: "customer",
     description: "Returns paginated order history for the authenticated customer.",
+  },
+  accountAddresses: {
+    method: "GET",
+    path: "/api/v1/account/addresses",
+    auth: "customer",
+    description: "Returns the authenticated customer's saved shipping addresses.",
   },
 } satisfies Record<string, EndpointDefinition>;
 

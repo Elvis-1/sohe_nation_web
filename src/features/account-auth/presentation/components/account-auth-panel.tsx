@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 
 import { useAccountAuth } from "../state/account-auth-provider";
@@ -59,8 +60,8 @@ export function AccountAuthPanel() {
         {mode === "sign-in" ? "Return to the campaign." : "Create your customer profile."}
       </h2>
       <p className="mt-4 text-sm leading-7 text-[var(--color-text-secondary)]">
-        This mocked auth feature owns entry into the customer account area during Phase 4, so the
-        account UI stays separate from sign-in and registration concerns.
+        Account entry now runs through the backend customer auth layer, so sign-in and registration
+        open the live account surfaces instead of a mocked credential bridge.
       </p>
 
       <div className="mt-6 grid gap-4">
@@ -102,9 +103,19 @@ export function AccountAuthPanel() {
           {status === "submitting"
             ? "Processing..."
             : mode === "sign-in"
-              ? "Mock Sign In"
-              : "Mock Create Account"}
+              ? "Sign In"
+              : "Create Account"}
         </button>
+        {mode === "sign-in" ? (
+          <div className="flex justify-end">
+            <Link
+              href="/account/forgot-password"
+              className="text-xs uppercase tracking-[0.16em] text-[var(--color-accent-gold-highlight)] transition hover:text-[var(--color-text-primary)]"
+            >
+              Forgot password?
+            </Link>
+          </div>
+        ) : null}
         {status === "error" && authError ? (
           <p className="text-sm text-[#ff9b8a]">{authError}</p>
         ) : null}
