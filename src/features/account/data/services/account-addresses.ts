@@ -2,7 +2,7 @@ import type { RegionCode } from "@/core/types/commerce";
 
 import type { AccountApiAuth } from "./get-customer-account";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "";
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000/api/v1";
 
 export type CustomerAddress = {
   id: string;
@@ -109,7 +109,6 @@ async function extractErrorMessage(response: Response, fallback: string): Promis
 }
 
 export async function listCustomerAddresses(auth?: AccountApiAuth): Promise<CustomerAddress[]> {
-  if (!API_BASE) return [];
   const response = await fetch(`${API_BASE}/account/addresses/`, {
     method: "GET",
     credentials: "include",

@@ -10,7 +10,7 @@ import {
 } from "react";
 
 const STORAGE_KEY = "sohe-storefront-account-session";
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "";
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000/api/v1";
 
 export type AccountSession = {
   isAuthenticated: boolean;
@@ -158,7 +158,7 @@ export function AccountAuthProvider({ children }: { children: ReactNode }) {
 
     async function restoreSession() {
       const stored = readStoredSession();
-      if (!stored || !API_BASE) {
+      if (!stored) {
         if (isActive) {
           setSession(stored);
           setIsReady(true);

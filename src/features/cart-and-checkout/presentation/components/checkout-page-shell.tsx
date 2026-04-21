@@ -11,8 +11,7 @@ import {
   listCustomerAddresses,
   type CustomerAddress,
 } from "@/features/account/data/services/account-addresses";
-
-import { createMockCheckoutSession } from "../../data/repositories/mock-cart-repository";
+import { createCheckoutSession } from "@/features/cart-and-checkout/data/services/checkout-sessions";
 import { useCart } from "../state/cart-provider";
 
 const providerLabels: Record<CheckoutProvider, { title: string; body: string }> = {
@@ -104,6 +103,12 @@ export function CheckoutPageShell() {
     setStatus("submitting");
     setFormError(null);
 
+    if (!session?.token) {
+      setFormError("Sign in to continue to live payment checkout.");
+      setStatus("idle");
+      return;
+    }
+
     if (saveAddress && isAuthenticated && session?.token && session.email) {
       try {
         await createCustomerAddress(
@@ -135,10 +140,26 @@ export function CheckoutPageShell() {
       }
     }
 
-    const checkoutSession = await createMockCheckoutSession(cart, provider);
-
-    setSessionId(checkoutSession.id);
-    setStatus("success");
+    try {
+      const checkoutSession = await createCheckoutSession(
+        cart,
+        provider,
+        shippingAddress,
+        { token: session.token },
+      );
+      setSessionId(checkoutSession.id);
+      setStatus("success");
+      if (checkoutSession.approvalUrl) {
+        window.location.assign(checkoutSession.approvalUrl);
+      }
+    } catch (error) {
+      setFormError(
+        error instanceof Error
+          ? error.message
+          : "Unable to start checkout right now.",
+      );
+      setStatus("idle");
+    }
   }
 
   if (!cart.lines.length) {
@@ -433,8 +454,7 @@ export function CheckoutPageShell() {
             </Link>
           </div>
           <p className="mt-4 text-sm leading-7 text-[var(--color-text-secondary)]">
-            This fixture flow simulates the redirect-based provider handoff planned for PayPal and
-            Flutterwave without touching live payment APIs yet.
+            Checkout now creates a backend session and hands off to the selected provider.
           </p>
         </section>
 

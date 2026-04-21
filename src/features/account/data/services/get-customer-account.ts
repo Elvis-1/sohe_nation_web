@@ -6,7 +6,7 @@ import {
   type CustomerAddress,
 } from "@/features/account/data/services/account-addresses";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "";
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000/api/v1";
 
 export type CustomerReturn = {
   id: string;
@@ -93,8 +93,6 @@ function mapApiReturnToCustomerReturn(api: ApiAccountReturn): CustomerReturn {
 }
 
 async function fetchApiReturns(auth?: AccountApiAuth): Promise<CustomerReturn[]> {
-  if (!API_BASE) return [];
-
   const response = await fetch(`${API_BASE}/account/returns/`, {
     method: "GET",
     credentials: "include",
@@ -332,10 +330,6 @@ export async function getCustomerOrderDetail(
   orderId: string,
   auth?: AccountApiAuth,
 ): Promise<CustomerOrderDetail | null> {
-  if (!API_BASE) {
-    return null;
-  }
-
   const response = await fetch(`${API_BASE}/account/orders/${orderId}/`, {
     method: "GET",
     credentials: "include",
