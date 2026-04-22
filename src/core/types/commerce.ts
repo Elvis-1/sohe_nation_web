@@ -50,6 +50,7 @@ export type Product = {
     min: Money;
     max: Money;
   };
+  shippingCost?: Money;
   variants: ProductVariant[];
 };
 
@@ -82,6 +83,7 @@ export type CartLine = {
   quantity: number;
   unitPrice: Money;
   lineTotal: Money;
+  shippingTotal?: Money;
 };
 
 export type CartSummary = {

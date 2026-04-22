@@ -70,6 +70,7 @@ export type ApiProduct = {
     min: ApiMoney;
     max: ApiMoney;
   } | null;
+  shipping?: ApiMoney | null;
   variants: ApiVariant[];
   narrative?: ApiNarrative | null;
 };
@@ -146,6 +147,7 @@ export function mapApiProductToStorefront(api: ApiProduct): Product {
     regionAvailability: api.region_availability as Product["regionAvailability"],
     media: api.media.map(mapMedia),
     priceRange,
+    shippingCost: api.shipping ? mapMoney(api.shipping) : fallbackMoney,
     variants: api.variants.map(mapVariant),
   };
 }

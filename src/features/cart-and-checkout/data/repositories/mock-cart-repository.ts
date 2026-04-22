@@ -10,6 +10,9 @@ export type StoredCartLine = {
   unitPriceAmount?: number;
   unitPriceCurrency?: CurrencyCode;
   unitPriceFormatted?: string;
+  unitShippingAmount?: number;
+  unitShippingCurrency?: CurrencyCode;
+  unitShippingFormatted?: string;
 };
 
 function formatMoney(amount: number, currency: CurrencyCode = "NGN") {
@@ -44,6 +47,9 @@ export function createStoredCartLine(product: Product, variantId: string, quanti
       unitPriceAmount: 0,
       unitPriceCurrency: "NGN",
       unitPriceFormatted: "NGN 0",
+      unitShippingAmount: 0,
+      unitShippingCurrency: "NGN",
+      unitShippingFormatted: "NGN 0",
     };
   }
 
@@ -56,6 +62,11 @@ export function createStoredCartLine(product: Product, variantId: string, quanti
     unitPriceAmount: selectedVariant.price.amount,
     unitPriceCurrency: selectedVariant.price.currency,
     unitPriceFormatted: selectedVariant.price.formatted,
+    unitShippingAmount: product.shippingCost?.amount ?? 0,
+    unitShippingCurrency: product.shippingCost?.currency ?? selectedVariant.price.currency,
+    unitShippingFormatted:
+      product.shippingCost?.formatted ??
+      formatMoney(0, selectedVariant.price.currency).formatted,
   };
 }
 
@@ -67,7 +78,10 @@ export function buildCart(lines: StoredCartLine[]): Cart {
       line.variantLabel &&
       typeof line.unitPriceAmount === "number" &&
       line.unitPriceCurrency &&
-      line.unitPriceFormatted
+      line.unitPriceFormatted &&
+      typeof line.unitShippingAmount === "number" &&
+      line.unitShippingCurrency &&
+      line.unitShippingFormatted
     ) {
       const quantity = Math.max(1, line.quantity);
       const unitPrice = {
@@ -75,6 +89,7 @@ export function buildCart(lines: StoredCartLine[]): Cart {
         currency: line.unitPriceCurrency,
         formatted: line.unitPriceFormatted,
       };
+      const lineShippingAmount = line.unitShippingAmount * quantity;
       return [
         {
           id: `${line.productId}:${line.variantId}`,
@@ -85,6 +100,7 @@ export function buildCart(lines: StoredCartLine[]): Cart {
           quantity,
           unitPrice,
           lineTotal: formatMoney(unitPrice.amount * quantity, unitPrice.currency),
+          shippingTotal: formatMoney(lineShippingAmount, line.unitShippingCurrency),
         },
       ];
     }
@@ -115,13 +131,14 @@ export function buildCart(lines: StoredCartLine[]): Cart {
         quantity,
         unitPrice: variant.price,
         lineTotal: formatMoney(lineTotalAmount, variant.price.currency),
+        shippingTotal: formatMoney(0, variant.price.currency),
       },
     ];
   });
 
   const subtotalAmount = hydratedLines.reduce((sum, line) => sum + line.lineTotal.amount, 0);
   const summaryCurrency = hydratedLines[0]?.unitPrice.currency ?? "NGN";
-  const shippingAmount = hydratedLines.length ? 15000 : 0;
+  const shippingAmount = hydratedLines.reduce((sum, line) => sum + (line.shippingTotal?.amount ?? 0), 0);
   const discountAmount = subtotalAmount >= 250000 ? 10000 : 0;
   const totalAmount = subtotalAmount + shippingAmount - discountAmount;
 
