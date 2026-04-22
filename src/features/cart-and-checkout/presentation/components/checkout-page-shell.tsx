@@ -26,7 +26,7 @@ const providerLabels: Record<CheckoutProvider, { title: string; body: string }> 
 };
 
 export function CheckoutPageShell() {
-  const { cart, clearCart } = useCart();
+  const { cart, clearCart, isHydrated } = useCart();
   const { isAuthenticated, session } = useAccountAuth();
   const [provider, setProvider] = useState<CheckoutProvider>("paypal");
   const [status, setStatus] = useState<"idle" | "submitting" | "success">("idle");
@@ -160,6 +160,19 @@ export function CheckoutPageShell() {
       );
       setStatus("idle");
     }
+  }
+
+  if (!isHydrated) {
+    return (
+      <section className="rounded-[2rem] border border-[var(--color-border-subtle)] bg-[linear-gradient(135deg,rgba(38,34,29,0.98),rgba(10,10,10,0.98))] p-8 shadow-[var(--shadow-gold)]">
+        <p className="font-[family:var(--font-supporting)] text-[10px] uppercase tracking-[0.24em] text-[var(--color-accent-gold-highlight)]">
+          Loading Checkout
+        </p>
+        <p className="mt-3 text-sm leading-7 text-[var(--color-text-secondary)]">
+          Bringing your current bag into checkout.
+        </p>
+      </section>
+    );
   }
 
   if (!cart.lines.length) {

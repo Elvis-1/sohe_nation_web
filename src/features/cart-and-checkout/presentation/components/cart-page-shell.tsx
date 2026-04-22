@@ -23,12 +23,25 @@ function renderMoneyValue(formatted: string) {
 }
 
 export function CartPageShell() {
-  const { cart, itemCount, updateQuantity, removeItem } = useCart();
+  const { cart, itemCount, isHydrated, updateQuantity, removeItem } = useCart();
   const largestLine = cart.lines[0];
   const recommendedProducts = useMemo(
     () => getRecommendedProductsForProductIds(cart.lines.map((line) => line.productId)),
     [cart.lines],
   );
+
+  if (!isHydrated) {
+    return (
+      <section className="rounded-[2rem] border border-[var(--color-border-subtle)] bg-[linear-gradient(135deg,rgba(38,34,29,0.98),rgba(10,10,10,0.98))] p-8 shadow-[var(--shadow-gold)]">
+        <p className="font-[family:var(--font-supporting)] text-[10px] uppercase tracking-[0.24em] text-[var(--color-accent-gold-highlight)]">
+          Loading Bag
+        </p>
+        <p className="mt-3 text-sm leading-7 text-[var(--color-text-secondary)]">
+          Pulling your staged cart from this browser session.
+        </p>
+      </section>
+    );
+  }
 
   if (!cart.lines.length) {
     return (
