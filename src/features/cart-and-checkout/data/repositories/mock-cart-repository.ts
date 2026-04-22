@@ -1,17 +1,23 @@
-import type { Cart, CartLine, CheckoutProvider, CheckoutSession, Product } from "@/core/types/commerce";
+import type { Cart, CartLine, CheckoutProvider, CheckoutSession, CurrencyCode, Product } from "@/core/types/commerce";
 import { storefrontMock } from "@/mocks/storefront";
 
 export type StoredCartLine = {
   productId: string;
   variantId: string;
   quantity: number;
+  title?: string;
+  variantLabel?: string;
+  unitPriceAmount?: number;
+  unitPriceCurrency?: CurrencyCode;
+  unitPriceFormatted?: string;
 };
 
-function formatMoney(amount: number) {
+function formatMoney(amount: number, currency: CurrencyCode = "NGN") {
+  const locale = currency === "NGN" ? "en-NG" : "en-US";
   return {
     amount,
-    currency: "NGN" as const,
-    formatted: `NGN ${amount.toLocaleString("en-NG")}`,
+    currency,
+    formatted: `${currency} ${amount.toLocaleString(locale)}`,
   };
 }
 
@@ -24,15 +30,66 @@ function findVariant(product: Product, variantId: string) {
 }
 
 export function createStoredCartLine(product: Product, variantId: string, quantity = 1): StoredCartLine {
+  const variant = findVariant(product, variantId);
+  const fallbackVariant = product.variants[0];
+  const selectedVariant = variant ?? fallbackVariant;
+
+  if (!selectedVariant) {
+    return {
+      productId: product.id,
+      variantId,
+      quantity,
+      title: product.title,
+      variantLabel: "Selected variant",
+      unitPriceAmount: 0,
+      unitPriceCurrency: "NGN",
+      unitPriceFormatted: "NGN 0",
+    };
+  }
+
   return {
     productId: product.id,
-    variantId,
+    variantId: selectedVariant.id,
     quantity,
+    title: product.title,
+    variantLabel: `${selectedVariant.color} / ${selectedVariant.size}`,
+    unitPriceAmount: selectedVariant.price.amount,
+    unitPriceCurrency: selectedVariant.price.currency,
+    unitPriceFormatted: selectedVariant.price.formatted,
   };
 }
 
 export function buildCart(lines: StoredCartLine[]): Cart {
   const hydratedLines: CartLine[] = lines.flatMap((line) => {
+    // Preferred path: hydrate directly from stored snapshot so API-backed products remain stable.
+    if (
+      line.title &&
+      line.variantLabel &&
+      typeof line.unitPriceAmount === "number" &&
+      line.unitPriceCurrency &&
+      line.unitPriceFormatted
+    ) {
+      const quantity = Math.max(1, line.quantity);
+      const unitPrice = {
+        amount: line.unitPriceAmount,
+        currency: line.unitPriceCurrency,
+        formatted: line.unitPriceFormatted,
+      };
+      return [
+        {
+          id: `${line.productId}:${line.variantId}`,
+          productId: line.productId,
+          variantId: line.variantId,
+          title: line.title,
+          variantLabel: line.variantLabel,
+          quantity,
+          unitPrice,
+          lineTotal: formatMoney(unitPrice.amount * quantity, unitPrice.currency),
+        },
+      ];
+    }
+
+    // Backward-compat path for older localStorage entries from the fixture-only phase.
     const product = findProduct(line.productId);
 
     if (!product) {
@@ -57,12 +114,13 @@ export function buildCart(lines: StoredCartLine[]): Cart {
         variantLabel: `${variant.color} / ${variant.size}`,
         quantity,
         unitPrice: variant.price,
-        lineTotal: formatMoney(lineTotalAmount),
+        lineTotal: formatMoney(lineTotalAmount, variant.price.currency),
       },
     ];
   });
 
   const subtotalAmount = hydratedLines.reduce((sum, line) => sum + line.lineTotal.amount, 0);
+  const summaryCurrency = hydratedLines[0]?.unitPrice.currency ?? "NGN";
   const shippingAmount = hydratedLines.length ? 15000 : 0;
   const discountAmount = subtotalAmount >= 250000 ? 10000 : 0;
   const totalAmount = subtotalAmount + shippingAmount - discountAmount;
@@ -73,10 +131,10 @@ export function buildCart(lines: StoredCartLine[]): Cart {
     currency: "NGN",
     lines: hydratedLines,
     summary: {
-      subtotal: formatMoney(subtotalAmount),
-      shipping: formatMoney(shippingAmount),
-      discount: formatMoney(discountAmount),
-      total: formatMoney(totalAmount),
+      subtotal: formatMoney(subtotalAmount, summaryCurrency),
+      shipping: formatMoney(shippingAmount, summaryCurrency),
+      discount: formatMoney(discountAmount, summaryCurrency),
+      total: formatMoney(totalAmount, summaryCurrency),
     },
   };
 }
