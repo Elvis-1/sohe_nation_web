@@ -25,6 +25,57 @@ const providerLabels: Record<CheckoutProvider, { title: string; body: string }> 
   },
 };
 
+const CHECKOUT_ADDRESS_STORAGE_KEY = "sohe-storefront-checkout-address";
+
+type ShippingAddressState = {
+  recipientName: string;
+  phone: string;
+  line1: string;
+  line2: string;
+  city: string;
+  state: string;
+  postalCode: string;
+  countryCode: RegionCode;
+};
+
+const emptyShippingAddress: ShippingAddressState = {
+  recipientName: "",
+  phone: "",
+  line1: "",
+  line2: "",
+  city: "",
+  state: "",
+  postalCode: "",
+  countryCode: "NG",
+};
+
+function readStoredCheckoutAddress(): ShippingAddressState | null {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  try {
+    const raw = window.localStorage.getItem(CHECKOUT_ADDRESS_STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as Partial<ShippingAddressState>;
+    if (!parsed.line1 || !parsed.city || !parsed.state) {
+      return null;
+    }
+    return {
+      recipientName: parsed.recipientName ?? "",
+      phone: parsed.phone ?? "",
+      line1: parsed.line1,
+      line2: parsed.line2 ?? "",
+      city: parsed.city,
+      state: parsed.state,
+      postalCode: parsed.postalCode ?? "",
+      countryCode: (parsed.countryCode as RegionCode) ?? "NG",
+    };
+  } catch {
+    return null;
+  }
+}
+
 export function CheckoutPageShell() {
   const { cart, clearCart, isHydrated } = useCart();
   const { isAuthenticated, session } = useAccountAuth();
@@ -33,17 +84,10 @@ export function CheckoutPageShell() {
   const [sessionId, setSessionId] = useState("");
   const [formError, setFormError] = useState<string | null>(null);
   const [defaultAddress, setDefaultAddress] = useState<CustomerAddress | null>(null);
-  const [saveAddress, setSaveAddress] = useState(false);
-  const [shippingAddress, setShippingAddress] = useState({
-    recipientName: "",
-    phone: "",
-    line1: "",
-    line2: "",
-    city: "",
-    state: "",
-    postalCode: "",
-    countryCode: "NG" as RegionCode,
-  });
+  const [saveAddress, setSaveAddress] = useState(true);
+  const [shippingAddress, setShippingAddress] = useState<ShippingAddressState>(
+    () => readStoredCheckoutAddress() ?? emptyShippingAddress,
+  );
   const selectedProvider = providerLabels[provider];
 
   useEffect(() => {
@@ -68,16 +112,20 @@ export function CheckoutPageShell() {
         if (!isActive) return;
         setDefaultAddress(found);
         if (found) {
-          setShippingAddress({
-            recipientName: found.recipientName,
-            phone: found.phone,
-            line1: found.line1,
-            line2: found.line2,
-            city: found.city,
-            state: found.state,
-            postalCode: found.postalCode,
-            countryCode: found.countryCode,
-          });
+          setShippingAddress((current) =>
+            current.line1 || current.city || current.state
+              ? current
+              : {
+                  recipientName: found.recipientName,
+                  phone: found.phone,
+                  line1: found.line1,
+                  line2: found.line2,
+                  city: found.city,
+                  state: found.state,
+                  postalCode: found.postalCode,
+                  countryCode: found.countryCode,
+                },
+          );
         }
       } catch {
         if (isActive) setDefaultAddress(null);
@@ -89,6 +137,13 @@ export function CheckoutPageShell() {
       isActive = false;
     };
   }, [session]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+    window.localStorage.setItem(CHECKOUT_ADDRESS_STORAGE_KEY, JSON.stringify(shippingAddress));
+  }, [shippingAddress]);
 
   async function handleCheckout() {
     if (!shippingAddress.recipientName.trim() || !shippingAddress.line1.trim() || !shippingAddress.city.trim() || !shippingAddress.state.trim()) {
@@ -257,78 +312,97 @@ export function CheckoutPageShell() {
         </div>
 
         <div className="relative z-10 mt-8 grid gap-4 md:grid-cols-[0.9fr_1.1fr]">
-          <div className="min-w-0 space-y-4">
-            <article className="min-w-0 rounded-[1.5rem] border border-white/8 bg-black/25 p-5 backdrop-blur-sm">
-              <p className="font-[family:var(--font-supporting)] text-[10px] uppercase tracking-[0.22em] text-[var(--color-text-muted)]">
-                Shipping Contact
-              </p>
-              <div className="mt-3 grid gap-3">
+          <article className="min-w-0 rounded-[1.5rem] border border-white/8 bg-black/25 p-5 backdrop-blur-sm">
+            <p className="font-[family:var(--font-supporting)] text-[10px] uppercase tracking-[0.22em] text-[var(--color-text-muted)]">
+              Shipping Address
+            </p>
+            {defaultAddress ? (
+              <button
+                type="button"
+                onClick={() =>
+                  setShippingAddress({
+                    recipientName: defaultAddress.recipientName,
+                    phone: defaultAddress.phone,
+                    line1: defaultAddress.line1,
+                    line2: defaultAddress.line2,
+                    city: defaultAddress.city,
+                    state: defaultAddress.state,
+                    postalCode: defaultAddress.postalCode,
+                    countryCode: defaultAddress.countryCode,
+                  })
+                }
+                className="mt-3 rounded-full border border-[var(--color-border-strong)] px-3 py-2 text-[10px] uppercase tracking-[0.2em] text-[var(--color-accent-gold-highlight)] transition hover:bg-[rgba(214,165,72,0.08)]"
+              >
+                Use Saved Default Address
+              </button>
+            ) : null}
+            <div className="mt-3 grid gap-3">
+              <div className="grid gap-3 sm:grid-cols-2">
                 <input
                   value={shippingAddress.recipientName}
-                  onChange={(event) => setShippingAddress((current) => ({ ...current, recipientName: event.target.value }))}
+                  onChange={(event) =>
+                    setShippingAddress((current) => ({ ...current, recipientName: event.target.value }))
+                  }
                   placeholder="Recipient name"
                   className="h-11 rounded-[0.9rem] border border-white/10 bg-black/20 px-3 text-sm text-[var(--color-text-primary)] outline-none transition focus:border-[var(--color-border-strong)]"
                 />
                 <input
                   value={shippingAddress.phone}
-                  onChange={(event) => setShippingAddress((current) => ({ ...current, phone: event.target.value }))}
+                  onChange={(event) =>
+                    setShippingAddress((current) => ({ ...current, phone: event.target.value }))
+                  }
                   placeholder="Phone number"
                   className="h-11 rounded-[0.9rem] border border-white/10 bg-black/20 px-3 text-sm text-[var(--color-text-primary)] outline-none transition focus:border-[var(--color-border-strong)]"
                 />
               </div>
-            </article>
-            <article className="min-w-0 rounded-[1.5rem] border border-white/8 bg-black/25 p-5 backdrop-blur-sm">
-              <p className="font-[family:var(--font-supporting)] text-[10px] uppercase tracking-[0.22em] text-[var(--color-text-muted)]">
-                Delivery Address
-              </p>
-              <div className="mt-3 grid gap-3">
+              <input
+                value={shippingAddress.line1}
+                onChange={(event) => setShippingAddress((current) => ({ ...current, line1: event.target.value }))}
+                placeholder="Address line 1"
+                className="h-11 rounded-[0.9rem] border border-white/10 bg-black/20 px-3 text-sm text-[var(--color-text-primary)] outline-none transition focus:border-[var(--color-border-strong)]"
+              />
+              <input
+                value={shippingAddress.line2}
+                onChange={(event) => setShippingAddress((current) => ({ ...current, line2: event.target.value }))}
+                placeholder="Address line 2 (optional)"
+                className="h-11 rounded-[0.9rem] border border-white/10 bg-black/20 px-3 text-sm text-[var(--color-text-primary)] outline-none transition focus:border-[var(--color-border-strong)]"
+              />
+              <div className="grid gap-3 sm:grid-cols-2">
                 <input
-                  value={shippingAddress.line1}
-                  onChange={(event) => setShippingAddress((current) => ({ ...current, line1: event.target.value }))}
-                  placeholder="Address line 1"
+                  value={shippingAddress.city}
+                  onChange={(event) => setShippingAddress((current) => ({ ...current, city: event.target.value }))}
+                  placeholder="City"
                   className="h-11 rounded-[0.9rem] border border-white/10 bg-black/20 px-3 text-sm text-[var(--color-text-primary)] outline-none transition focus:border-[var(--color-border-strong)]"
                 />
                 <input
-                  value={shippingAddress.line2}
-                  onChange={(event) => setShippingAddress((current) => ({ ...current, line2: event.target.value }))}
-                  placeholder="Address line 2 (optional)"
+                  value={shippingAddress.state}
+                  onChange={(event) => setShippingAddress((current) => ({ ...current, state: event.target.value }))}
+                  placeholder="State / Province"
                   className="h-11 rounded-[0.9rem] border border-white/10 bg-black/20 px-3 text-sm text-[var(--color-text-primary)] outline-none transition focus:border-[var(--color-border-strong)]"
                 />
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <input
-                    value={shippingAddress.city}
-                    onChange={(event) => setShippingAddress((current) => ({ ...current, city: event.target.value }))}
-                    placeholder="City"
-                    className="h-11 rounded-[0.9rem] border border-white/10 bg-black/20 px-3 text-sm text-[var(--color-text-primary)] outline-none transition focus:border-[var(--color-border-strong)]"
-                  />
-                  <input
-                    value={shippingAddress.state}
-                    onChange={(event) => setShippingAddress((current) => ({ ...current, state: event.target.value }))}
-                    placeholder="State / Province"
-                    className="h-11 rounded-[0.9rem] border border-white/10 bg-black/20 px-3 text-sm text-[var(--color-text-primary)] outline-none transition focus:border-[var(--color-border-strong)]"
-                  />
-                </div>
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <select
-                    value={shippingAddress.countryCode}
-                    onChange={(event) => setShippingAddress((current) => ({ ...current, countryCode: event.target.value as RegionCode }))}
-                    className="h-11 rounded-[0.9rem] border border-white/10 bg-black/20 px-3 text-sm text-[var(--color-text-primary)] outline-none transition focus:border-[var(--color-border-strong)]"
-                  >
-                    <option value="NG">Nigeria</option>
-                    <option value="US">United States</option>
-                    <option value="GB">United Kingdom</option>
-                    <option value="EU">European Union</option>
-                  </select>
-                  <input
-                    value={shippingAddress.postalCode}
-                    onChange={(event) => setShippingAddress((current) => ({ ...current, postalCode: event.target.value }))}
-                    placeholder="Postal code"
-                    className="h-11 rounded-[0.9rem] border border-white/10 bg-black/20 px-3 text-sm text-[var(--color-text-primary)] outline-none transition focus:border-[var(--color-border-strong)]"
-                  />
-                </div>
               </div>
-            </article>
-          </div>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <select
+                  value={shippingAddress.countryCode}
+                  onChange={(event) =>
+                    setShippingAddress((current) => ({ ...current, countryCode: event.target.value as RegionCode }))
+                  }
+                  className="h-11 rounded-[0.9rem] border border-white/10 bg-black/20 px-3 text-sm text-[var(--color-text-primary)] outline-none transition focus:border-[var(--color-border-strong)]"
+                >
+                  <option value="NG">Nigeria</option>
+                  <option value="US">United States</option>
+                  <option value="GB">United Kingdom</option>
+                  <option value="EU">European Union</option>
+                </select>
+                <input
+                  value={shippingAddress.postalCode}
+                  onChange={(event) => setShippingAddress((current) => ({ ...current, postalCode: event.target.value }))}
+                  placeholder="Postal code"
+                  className="h-11 rounded-[0.9rem] border border-white/10 bg-black/20 px-3 text-sm text-[var(--color-text-primary)] outline-none transition focus:border-[var(--color-border-strong)]"
+                />
+              </div>
+            </div>
+          </article>
 
           <div className="min-w-0 rounded-[1.75rem] border border-[var(--color-border-strong)] bg-[linear-gradient(180deg,rgba(214,165,72,0.12),rgba(0,0,0,0.12))] p-5">
             <p className="font-[family:var(--font-supporting)] text-[10px] uppercase tracking-[0.22em] text-[var(--color-text-muted)]">
