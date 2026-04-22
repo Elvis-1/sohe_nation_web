@@ -1,6 +1,7 @@
 import { Container } from "@/core/ui/container";
 import {
   getCatalogProducts,
+  type CatalogResult,
   parseCatalogFilters,
 } from "@/features/product-discovery/data/services/get-catalog-products";
 import { CatalogFilters } from "@/features/product-discovery/presentation/components/catalog-filters";
@@ -48,11 +49,43 @@ export default async function ProductsPage({
 }) {
   const resolvedSearchParams = await searchParams;
   const filters = parseCatalogFilters(resolvedSearchParams);
-  const catalog = await getCatalogProducts(filters);
+  let catalog: CatalogResult = {
+    products: [],
+    total: 0,
+    availableFacets: {
+      categories: [],
+      genders: [],
+      sizes: [],
+      priceBands: [],
+    },
+    appliedFilters: filters,
+  };
+  let loadError = "";
+
+  try {
+    catalog = await getCatalogProducts(filters);
+  } catch (error) {
+    loadError =
+      error instanceof Error
+        ? error.message
+        : "Unable to load product catalog right now.";
+  }
+
   const hideGenderFilter = filters.gender === "men" || filters.gender === "women";
 
   return (
     <Container className="py-10 md:py-14">
+      {loadError ? (
+        <section className="mb-6 rounded-[1.25rem] border border-[var(--color-border-strong)] bg-black/30 px-5 py-4">
+          <p className="font-[family:var(--font-supporting)] text-[10px] uppercase tracking-[0.24em] text-[var(--color-accent-gold-highlight)]">
+            Catalog Unavailable
+          </p>
+          <p className="mt-2 text-sm text-[var(--color-text-secondary)]">
+            We could not load the live catalog right now. Please retry in a moment.
+          </p>
+        </section>
+      ) : null}
+
       <section className="rounded-[2rem] border border-white/8 bg-[linear-gradient(135deg,rgba(26,25,24,0.98),rgba(11,11,11,0.92))] p-6 shadow-[var(--shadow-gold)] md:p-8">
         <p className="font-[family:var(--font-supporting)] text-[10px] uppercase tracking-[0.3em] text-[var(--color-accent-gold-highlight)]">
           The Line

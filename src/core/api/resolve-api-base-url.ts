@@ -1,4 +1,4 @@
-const DEFAULT_API_BASE_URL = "http://localhost:8000/api/v1";
+const DEFAULT_API_BASE_URL = "https://sohe-nation-api.onrender.com/api/v1";
 
 type ResolveApiBaseUrlOptions = {
   preferInternal?: boolean;
