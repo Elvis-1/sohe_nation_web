@@ -1,6 +1,5 @@
 import { HttpError } from "@/core/api/http-client";
 import { Container } from "@/core/ui/container";
-import { StoryBand } from "@/features/editorial/presentation/components/story-band";
 import { getHomepageContent } from "@/features/hero/data/services/get-homepage-campaign";
 import { HeroCampaign } from "@/features/hero/presentation/components/hero-campaign";
 import { ProductGrid } from "@/features/product-discovery/presentation/components/product-grid";
@@ -58,16 +57,12 @@ export default async function Home() {
       <>
         <HeroCampaign campaign={homepage.campaign} />
         <ProductGrid
-          eyebrow={homepage.featuredDrop?.eyebrow ?? "Opening Drop"}
-          title={homepage.featuredDrop?.title ?? "The lead looks of the opening drop."}
-          description={
-            homepage.featuredDrop?.description ??
-            "An authored release edit led by the flagship looks, then sharpened with the supporting pieces that complete the line."
-          }
-          products={homepage.featuredDrop?.products ?? []}
-          featuredProductId={homepage.featuredDrop?.products[0]?.id}
+          eyebrow="Opening Drop"
+          title="The lead looks of the opening drop."
+          description="An authored release edit led by the flagship looks, then sharpened with the supporting pieces that complete the line."
+          products={homepage.featuredProducts}
+          featuredProductId={homepage.featuredProducts[0]?.id}
         />
-        <StoryBand promo={homepage.navigationPromo} />
       </>
     );
   } catch (error) {

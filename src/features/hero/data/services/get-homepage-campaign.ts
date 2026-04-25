@@ -1,8 +1,6 @@
-import { HttpError, httpClient } from "@/core/api/http-client";
+import { httpClient } from "@/core/api/http-client";
 import { resolveApiBaseUrl } from "@/core/api/resolve-api-base-url";
 import type { Money, Product } from "@/core/types/commerce";
-
-import { mapHomepageCampaign } from "../mappers/map-homepage-campaign";
 
 const API_BASE = resolveApiBaseUrl();
 
@@ -48,17 +46,9 @@ type ApiProduct = {
   }>;
 };
 
+// Only the fields the storefront consumes — text content is hardcoded in the frontend.
 type ApiHomepagePayload = {
   hero: {
-    eyebrow: string;
-    headline: string;
-    body: string;
-    summary: string;
-    call_to_action_label: string;
-    call_to_action_href: string;
-    secondary_call_to_action_label: string;
-    secondary_call_to_action_href: string;
-    campaign_stats: Array<{ label: string; value: string }>;
     media_references: Array<{
       id: string;
       alt: string;
@@ -68,19 +58,7 @@ type ApiHomepagePayload = {
     }>;
   };
   featured_drop: null | {
-    eyebrow: string;
-    headline: string;
-    body: string;
-    summary: string;
     linked_products: ApiProduct[];
-  };
-  navigation_promo: null | {
-    eyebrow: string;
-    headline: string;
-    body: string;
-    call_to_action_label: string;
-    call_to_action_href: string;
-    modules: Array<{ title: string; body: string }>;
   };
 };
 
@@ -114,10 +92,7 @@ function mapProduct(api: ApiProduct): Product {
       url: item.url,
       posterUrl: item.poster_url,
     })),
-    priceRange: {
-      min,
-      max,
-    },
+    priceRange: { min, max },
     variants: api.variants.map((variant) => ({
       id: variant.id,
       sku: variant.sku,
@@ -144,44 +119,34 @@ function mapProduct(api: ApiProduct): Product {
   };
 }
 
+// All campaign text is fixed. Only the hero video and featured products come from the API.
 export async function getHomepageContent() {
   const dto = await httpClient<ApiHomepagePayload>(`${API_BASE}/content/homepage/`);
   const heroMedia = dto.hero.media_references[0];
 
   return {
-    campaign: mapHomepageCampaign({
-      hero: {
-        eyebrow: dto.hero.eyebrow,
-        title: dto.hero.headline,
-        statement: dto.hero.summary,
-        description: dto.hero.body,
-        primaryCta: {
-          label: dto.hero.call_to_action_label,
-          href: dto.hero.call_to_action_href,
-        },
-        secondaryCta: {
-          label: dto.hero.secondary_call_to_action_label,
-          href: dto.hero.secondary_call_to_action_href,
-        },
-        campaignStats: dto.hero.campaign_stats,
-        media: {
-          id: heroMedia?.id ?? "homepage-hero-media",
-          type: heroMedia?.kind ?? "image",
-          url: heroMedia?.url ?? "",
-          posterUrl: heroMedia?.poster_url,
-          alt: heroMedia?.alt ?? dto.hero.headline,
-        },
+    campaign: {
+      eyebrow: "Campaign 01",
+      title: "Built Like An Army",
+      statement: "Street discipline. Runway presence.",
+      description:
+        "A sharp opening release from Sohe's Nation, where tactical cuts, layered silhouettes, and runway composure meet in one disciplined line.",
+      primaryCta: { label: "Shop The Drop", href: "/products" },
+      secondaryCta: { label: "Enter The Story", href: "/stories/built-like-an-army" },
+      campaignStats: [
+        { label: "Release Edit", value: "12 Looks" },
+        { label: "Lead Chapter", value: "Lookbook 01" },
+        { label: "Style Focus", value: "Outerwear" },
+      ],
+      media: {
+        id: heroMedia?.id ?? "homepage-hero-media",
+        type: (heroMedia?.kind ?? "video") as "image" | "video",
+        url: heroMedia?.url ?? "/hero-runway.mp4",
+        posterUrl: heroMedia?.poster_url ?? "/jacket_with_pant.jpeg",
+        alt: heroMedia?.alt ?? "Sohe's Nation runway campaign video",
       },
-    }),
-    featuredDrop: dto.featured_drop
-      ? {
-          eyebrow: dto.featured_drop.eyebrow,
-          title: dto.featured_drop.headline,
-          description: dto.featured_drop.body,
-          products: dto.featured_drop.linked_products.map(mapProduct),
-        }
-      : null,
-    navigationPromo: dto.navigation_promo,
+    },
+    featuredProducts: dto.featured_drop?.linked_products.map(mapProduct) ?? [],
   };
 }
 
