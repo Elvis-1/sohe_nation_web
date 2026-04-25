@@ -96,6 +96,25 @@ function matchesPrice(product: Product, price: string) {
   return getPriceBandValue(product) === price;
 }
 
+function resolveCatalogGenderQuery(gender: string) {
+  if (gender === "men" || gender === "women") {
+    return undefined;
+  }
+  return gender || undefined;
+}
+
+function matchesGender(product: Product, gender: string) {
+  if (!gender) {
+    return true;
+  }
+
+  if (gender === "men" || gender === "women") {
+    return product.gender === gender || product.gender === "unisex";
+  }
+
+  return product.gender === gender;
+}
+
 function sortProducts(products: Product[], sort: CatalogSort) {
   const sorted = [...products];
 
@@ -133,22 +152,18 @@ function buildFacet(values: string[], labels?: Record<string, string>) {
 export async function getCatalogProducts(filters: CatalogFilters): Promise<CatalogResult> {
   const products = await getProducts({
     category: filters.category || undefined,
-    gender: filters.gender || undefined,
+    gender: resolveCatalogGenderQuery(filters.gender),
     search: filters.query || undefined,
   });
 
   const filteredProducts = products.filter((product) => {
     const matchesCategory = !filters.category || product.category === filters.category;
-    const matchesGender =
-      !filters.gender ||
-      product.gender === filters.gender ||
-      (filters.gender === "men" && product.gender === "unisex");
     const matchesSize =
       !filters.size || product.variants.some((variant) => variant.size === filters.size);
 
     return (
       matchesCategory &&
-      matchesGender &&
+      matchesGender(product, filters.gender) &&
       matchesSize &&
       matchesPrice(product, filters.price) &&
       matchesQuery(product, filters.query)
