@@ -91,7 +91,9 @@ export function ReturnsPageShell({ account, auth, onReturnCreated }: Props) {
         <div className="relative z-10 mt-8">
           {returns.length === 0 ? (
             <p className="text-sm leading-7 text-[var(--color-text-secondary)]">
-              No return requests yet.
+              {account.loadErrors.includes("returns")
+                ? "Your return requests could not be loaded."
+                : "No return requests yet."}
             </p>
           ) : (
             <div className="space-y-3">
@@ -168,7 +170,9 @@ export function ReturnsPageShell({ account, auth, onReturnCreated }: Props) {
               </span>
               {eligibleOrders.length === 0 ? (
                 <p className="text-sm text-[var(--color-text-secondary)]">
-                  {orders.length === 0
+                  {account.loadErrors.includes("orders")
+                    ? "Your orders could not be loaded, so returns cannot be started right now."
+                    : orders.length === 0
                     ? "No orders found."
                     : "None of your orders are currently eligible for a return. Orders must be delivered and within the 14-day return window."}
                 </p>

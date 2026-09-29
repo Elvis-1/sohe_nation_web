@@ -6,6 +6,20 @@ type OrderDetailPageShellProps = {
   order: CustomerOrderDetail;
 };
 
+/** Address lines for display; falls back to the text snapshot for older orders. */
+function formatShippingLines(order: CustomerOrderDetail): string[] {
+  const details = order.shippingDetails;
+  if (!details) return [order.shippingAddress];
+  return [
+    details.recipientName,
+    details.line1,
+    details.line2,
+    [details.city, details.state, details.postalCode].filter(Boolean).join(", "),
+    details.countryCode,
+    details.phone,
+  ].filter(Boolean);
+}
+
 export function OrderDetailPageShell({ order }: OrderDetailPageShellProps) {
   const statusLabel =
     order.status === "fulfilled"
@@ -39,8 +53,8 @@ export function OrderDetailPageShell({ order }: OrderDetailPageShellProps) {
           <p className="font-[family:var(--font-supporting)] text-[10px] uppercase tracking-[0.22em] text-[var(--color-text-muted)]">
             Shipping Address
           </p>
-          <p className="mt-3 text-sm leading-7 text-[var(--color-text-secondary)]">
-            {order.shippingAddress}
+          <p className="mt-3 whitespace-pre-line text-sm leading-7 text-[var(--color-text-secondary)]">
+            {formatShippingLines(order).join("\n")}
           </p>
         </div>
 

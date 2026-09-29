@@ -1,6 +1,5 @@
 import { httpClient } from "@/core/api/http-client";
 import { resolveApiBaseUrl } from "@/core/api/resolve-api-base-url";
-import type { Product } from "@/core/types/commerce";
 import {
   mapApiProductToStorefront,
   type ApiProduct,

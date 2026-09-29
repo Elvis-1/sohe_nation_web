@@ -10,6 +10,7 @@ import {
   type AccountApiAuth,
   type CustomerAccountData,
 } from "../../data/services/get-customer-account";
+import { AccountLoadNotice } from "./account-load-notice";
 import { ReturnsPageShell } from "./returns-page-shell";
 
 export function AccountReturnsExperience() {
@@ -57,11 +58,18 @@ export function AccountReturnsExperience() {
       description="Returns are managed inside your customer account. Sign in to view and submit return requests."
     >
       {account ? (
-        <ReturnsPageShell
-          account={account}
-          auth={auth}
-          onReturnCreated={() => setRefreshKey((k) => k + 1)}
-        />
+        <>
+          <AccountLoadNotice
+            account={account}
+            sections={["orders", "returns"]}
+            onRetry={() => setRefreshKey((k) => k + 1)}
+          />
+          <ReturnsPageShell
+            account={account}
+            auth={auth}
+            onReturnCreated={() => setRefreshKey((k) => k + 1)}
+          />
+        </>
       ) : (
         <section className="rounded-[2rem] border border-[var(--color-border-subtle)] bg-[linear-gradient(180deg,rgba(28,26,23,0.98),rgba(10,10,10,0.98))] p-8">
           <p className="font-[family:var(--font-supporting)] text-[10px] uppercase tracking-[0.28em] text-[var(--color-accent-gold-highlight)]">

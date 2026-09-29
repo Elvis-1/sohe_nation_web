@@ -13,6 +13,7 @@ import {
 } from "@/features/account/data/services/account-addresses";
 import { createCheckoutSession } from "@/features/cart-and-checkout/data/services/checkout-sessions";
 import { useCart } from "../state/cart-provider";
+import { useCheckoutQuote } from "../state/use-checkout-quote";
 
 const providerLabels: Record<CheckoutProvider, { title: string; body: string }> = {
   paypal: {
@@ -79,7 +80,8 @@ function readStoredCheckoutAddress(): ShippingAddressState | null {
 export function CheckoutPageShell() {
   const { cart, clearCart, isHydrated } = useCart();
   const { isAuthenticated, session } = useAccountAuth();
-  const [provider, setProvider] = useState<CheckoutProvider>("paypal");
+  // Flutterwave is the only provider the API accepts until PayPal credentials exist (api/PLAN.md Slice 9).
+  const [provider, setProvider] = useState<CheckoutProvider>("flutterwave");
   const [status, setStatus] = useState<"idle" | "submitting" | "success">("idle");
   const [sessionId, setSessionId] = useState("");
   const [formError, setFormError] = useState<string | null>(null);
@@ -88,7 +90,16 @@ export function CheckoutPageShell() {
   const [shippingAddress, setShippingAddress] = useState<ShippingAddressState>(
     () => readStoredCheckoutAddress() ?? emptyShippingAddress,
   );
+  const { quote, quoteError, isQuoteReady, summary } = useCheckoutQuote(cart, isHydrated);
   const selectedProvider = providerLabels[provider];
+  const reviewLines = quote
+    ? quote.lines.map((line) => ({
+        id: `${line.productId}:${line.variantId}`,
+        title: line.title,
+        quantity: line.quantity,
+        lineTotal: line.lineTotal,
+      }))
+    : cart.lines;
 
   useEffect(() => {
     let isActive = true;
@@ -146,6 +157,10 @@ export function CheckoutPageShell() {
   }, [shippingAddress]);
 
   async function handleCheckout() {
+    if (!isQuoteReady) {
+      setFormError(quoteError ?? "Your bag is still being priced. Try again in a moment.");
+      return;
+    }
     if (!shippingAddress.recipientName.trim() || !shippingAddress.line1.trim() || !shippingAddress.city.trim() || !shippingAddress.state.trim()) {
       setFormError("Recipient, address line, city, and state are required before checkout.");
       return;
@@ -463,14 +478,18 @@ export function CheckoutPageShell() {
               Checkout total
             </p>
             <p className="mt-3 font-[family:var(--font-heading)] text-5xl uppercase leading-none text-[var(--color-text-primary)]">
-              {cart.summary.total.formatted}
+              {summary.total.formatted}
             </p>
             <p className="mt-3 text-sm leading-7 text-[var(--color-text-secondary)]">
-              This is the fixture-mode handoff total that will be carried into the hosted provider session.
+              {quoteError
+                ? quoteError
+                : quote
+                  ? "Confirmed against current prices and stock. This is the amount you will be charged."
+                  : "Confirming current prices and stock..."}
             </p>
           </div>
           <div className="mt-5 space-y-3">
-            {cart.lines.map((line) => (
+            {reviewLines.map((line) => (
               <div
                 key={line.id}
                 className="flex items-center justify-between rounded-[1rem] border border-white/8 bg-black/20 px-4 py-3 text-sm text-[var(--color-text-secondary)]"
@@ -485,15 +504,15 @@ export function CheckoutPageShell() {
           <div className="mt-5 space-y-3 border-t border-white/8 pt-5 text-sm text-[var(--color-text-secondary)]">
             <div className="flex items-center justify-between">
               <span>Subtotal</span>
-              <span>{cart.summary.subtotal.formatted}</span>
+              <span>{summary.subtotal.formatted}</span>
             </div>
             <div className="flex items-center justify-between">
               <span>Shipping</span>
-              <span>{cart.summary.shipping.formatted}</span>
+              <span>{summary.shipping.formatted}</span>
             </div>
             <div className="flex items-center justify-between">
               <span>Discount</span>
-              <span>- {cart.summary.discount.formatted}</span>
+              <span>- {summary.discount.formatted}</span>
             </div>
           </div>
           <div className="mt-5 flex items-center justify-between border-t border-white/8 pt-5">
@@ -501,7 +520,7 @@ export function CheckoutPageShell() {
               Total
             </span>
             <span className="font-[family:var(--font-heading)] text-4xl uppercase leading-none text-[var(--color-text-primary)]">
-              {cart.summary.total.formatted}
+              {summary.total.formatted}
             </span>
           </div>
           {defaultAddress ? (
@@ -526,7 +545,7 @@ export function CheckoutPageShell() {
           {formError ? <p className="mt-3 text-sm text-[#ff9b8a]">{formError}</p> : null}
           <button
             type="button"
-            disabled={status === "submitting"}
+            disabled={status === "submitting" || !isQuoteReady}
             onClick={handleCheckout}
             className="mt-6 w-full rounded-full bg-[var(--color-accent-gold)] px-5 py-4 font-[family:var(--font-supporting)] text-[10px] uppercase tracking-[0.24em] text-black transition hover:bg-[var(--color-accent-gold-highlight)] disabled:opacity-60"
           >

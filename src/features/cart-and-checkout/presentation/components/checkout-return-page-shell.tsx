@@ -42,7 +42,11 @@ export function CheckoutReturnPageShell() {
           return;
         }
         if (checkoutSession.status === "failed") {
-          setState({ mode: "error", message: "Payment was not completed." });
+          setState({
+            mode: "error",
+            message:
+              "Payment was not completed. If you were charged, contact support with your order reference and we will resolve it.",
+          });
           return;
         }
         setState({ mode: "loading" });

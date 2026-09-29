@@ -1,10 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo } from "react";
-
-import { getRecommendedProductsForProductIds } from "../../data/repositories/mock-cart-repository";
 import { useCart } from "../state/cart-provider";
+import { useCheckoutQuote } from "../state/use-checkout-quote";
+import { useRecommendedProducts } from "../state/use-recommended-products";
 
 function renderMoneyValue(formatted: string) {
   const [currency, ...amountParts] = formatted.split(" ");
@@ -24,11 +23,9 @@ function renderMoneyValue(formatted: string) {
 
 export function CartPageShell() {
   const { cart, itemCount, isHydrated, updateQuantity, removeItem } = useCart();
+  const { quote, quoteError, summary, priceForVariant } = useCheckoutQuote(cart, isHydrated);
   const largestLine = cart.lines[0];
-  const recommendedProducts = useMemo(
-    () => getRecommendedProductsForProductIds(cart.lines.map((line) => line.productId)),
-    [cart.lines],
-  );
+  const recommendedProducts = useRecommendedProducts(cart.lines.map((line) => line.productId));
 
   if (!isHydrated) {
     return (
@@ -148,69 +145,72 @@ export function CartPageShell() {
             <p className="font-[family:var(--font-supporting)] text-[10px] uppercase tracking-[0.22em] text-[var(--color-text-muted)]">
               Subtotal
             </p>
-            <div className="mt-auto pt-3">{renderMoneyValue(cart.summary.subtotal.formatted)}</div>
+            <div className="mt-auto pt-3">{renderMoneyValue(summary.subtotal.formatted)}</div>
           </article>
           <article className="flex h-full min-w-0 flex-col rounded-[1.5rem] border border-white/8 bg-black/25 p-5 backdrop-blur-sm">
             <p className="font-[family:var(--font-supporting)] text-[10px] uppercase tracking-[0.22em] text-[var(--color-text-muted)]">
               Order total
             </p>
-            <div className="mt-auto pt-3">{renderMoneyValue(cart.summary.total.formatted)}</div>
+            <div className="mt-auto pt-3">{renderMoneyValue(summary.total.formatted)}</div>
           </article>
         </div>
 
         <div className="relative z-10 mt-8 space-y-4">
-          {cart.lines.map((line) => (
-            <article
-              key={line.id}
-              className="rounded-[1.75rem] border border-white/8 bg-black/20 p-5 transition hover:border-[var(--color-border-strong)]"
-            >
-              <div className="flex flex-wrap items-start justify-between gap-4">
-                <div>
-                  <p className="font-[family:var(--font-supporting)] text-[10px] uppercase tracking-[0.22em] text-[var(--color-text-muted)]">
-                    {line.variantLabel}
-                  </p>
-                  <h3 className="mt-2 font-[family:var(--font-heading)] text-3xl uppercase leading-none text-[var(--color-text-primary)]">
-                    {line.title}
-                  </h3>
-                  <p className="mt-3 font-[family:var(--font-supporting)] text-[10px] uppercase tracking-[0.22em] text-[var(--color-text-secondary)]">
-                    Unit price {line.unitPrice.formatted}
-                  </p>
+          {cart.lines.map((line) => {
+            const serverPrice = priceForVariant(line.variantId);
+            return (
+              <article
+                key={line.id}
+                className="rounded-[1.75rem] border border-white/8 bg-black/20 p-5 transition hover:border-[var(--color-border-strong)]"
+              >
+                <div className="flex flex-wrap items-start justify-between gap-4">
+                  <div>
+                    <p className="font-[family:var(--font-supporting)] text-[10px] uppercase tracking-[0.22em] text-[var(--color-text-muted)]">
+                      {line.variantLabel}
+                    </p>
+                    <h3 className="mt-2 font-[family:var(--font-heading)] text-3xl uppercase leading-none text-[var(--color-text-primary)]">
+                      {line.title}
+                    </h3>
+                    <p className="mt-3 font-[family:var(--font-supporting)] text-[10px] uppercase tracking-[0.22em] text-[var(--color-text-secondary)]">
+                      Unit price {(serverPrice?.unitPrice ?? line.unitPrice).formatted}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="font-[family:var(--font-supporting)] text-[10px] uppercase tracking-[0.22em] text-[var(--color-text-muted)]">
+                      Line total
+                    </p>
+                    <p className="mt-2 font-[family:var(--font-heading)] text-3xl uppercase leading-none text-[var(--color-text-primary)]">
+                      {(serverPrice?.lineTotal ?? line.lineTotal).formatted}
+                    </p>
+                  </div>
                 </div>
-                <div className="text-right">
-                  <p className="font-[family:var(--font-supporting)] text-[10px] uppercase tracking-[0.22em] text-[var(--color-text-muted)]">
-                    Line total
-                  </p>
-                  <p className="mt-2 font-[family:var(--font-heading)] text-3xl uppercase leading-none text-[var(--color-text-primary)]">
-                    {line.lineTotal.formatted}
-                  </p>
-                </div>
-              </div>
 
-              <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-white/8 pt-4">
-                <label className="flex items-center gap-3 font-[family:var(--font-supporting)] text-[10px] uppercase tracking-[0.22em] text-[var(--color-text-secondary)]">
-                  Quantity
-                  <select
-                    value={line.quantity}
-                    onChange={(event) => updateQuantity(line.variantId, Number(event.target.value))}
-                    className="h-11 rounded-full border border-white/10 bg-black/30 px-4 text-xs text-[var(--color-text-primary)] outline-none transition focus:border-[var(--color-border-strong)]"
+                <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-white/8 pt-4">
+                  <label className="flex items-center gap-3 font-[family:var(--font-supporting)] text-[10px] uppercase tracking-[0.22em] text-[var(--color-text-secondary)]">
+                    Quantity
+                    <select
+                      value={line.quantity}
+                      onChange={(event) => updateQuantity(line.variantId, Number(event.target.value))}
+                      className="h-11 rounded-full border border-white/10 bg-black/30 px-4 text-xs text-[var(--color-text-primary)] outline-none transition focus:border-[var(--color-border-strong)]"
+                    >
+                      {[1, 2, 3, 4].map((value) => (
+                        <option key={value} value={value}>
+                          {value}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => removeItem(line.variantId)}
+                    className="rounded-full border border-white/10 px-4 py-3 font-[family:var(--font-supporting)] text-[10px] uppercase tracking-[0.22em] text-[var(--color-text-primary)] transition hover:border-[var(--color-border-strong)]"
                   >
-                    {[1, 2, 3, 4].map((value) => (
-                      <option key={value} value={value}>
-                        {value}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <button
-                  type="button"
-                  onClick={() => removeItem(line.variantId)}
-                  className="rounded-full border border-white/10 px-4 py-3 font-[family:var(--font-supporting)] text-[10px] uppercase tracking-[0.22em] text-[var(--color-text-primary)] transition hover:border-[var(--color-border-strong)]"
-                >
-                  Remove
-                </button>
-              </div>
-            </article>
-          ))}
+                    Remove
+                  </button>
+                </div>
+              </article>
+            );
+          })}
         </div>
       </section>
 
@@ -222,15 +222,15 @@ export function CartPageShell() {
           <div className="mt-6 space-y-4 text-sm text-[var(--color-text-secondary)]">
             <div className="flex items-center justify-between">
               <span>Subtotal</span>
-              <span>{cart.summary.subtotal.formatted}</span>
+              <span>{summary.subtotal.formatted}</span>
             </div>
             <div className="flex items-center justify-between">
               <span>Shipping</span>
-              <span>{cart.summary.shipping.formatted}</span>
+              <span>{summary.shipping.formatted}</span>
             </div>
             <div className="flex items-center justify-between">
               <span>Drop discount</span>
-              <span>- {cart.summary.discount.formatted}</span>
+              <span>- {summary.discount.formatted}</span>
             </div>
           </div>
           <div className="mt-5 border-t border-white/8 pt-5">
@@ -239,13 +239,18 @@ export function CartPageShell() {
                 Total
               </span>
               <span className="font-[family:var(--font-heading)] text-4xl uppercase leading-none text-[var(--color-text-primary)]">
-                {cart.summary.total.formatted}
+                {summary.total.formatted}
               </span>
             </div>
-            <p className="mt-3 text-sm leading-7 text-[var(--color-text-secondary)]">
-              Shipping and discount values are mocked here to mirror the future cart contract while
-              keeping the current fixture-first storefront believable.
-            </p>
+            {quoteError ? (
+              <p className="mt-3 text-sm leading-7 text-[#ff9b8a]">{quoteError}</p>
+            ) : (
+              <p className="mt-3 text-sm leading-7 text-[var(--color-text-secondary)]">
+                {quote
+                  ? "Confirmed against current prices and stock."
+                  : "Confirming current prices and stock..."}
+              </p>
+            )}
           </div>
           <div className="mt-6 flex flex-wrap gap-3">
             <Link
@@ -263,33 +268,35 @@ export function CartPageShell() {
           </div>
         </section>
 
-        <section className="rounded-[2rem] border border-white/8 bg-black/20 p-6">
-          <p className="font-[family:var(--font-supporting)] text-[10px] uppercase tracking-[0.28em] text-[var(--color-accent-gold-highlight)]">
-            Keep Building The Look
-          </p>
-          <div className="mt-5 space-y-4">
-            {recommendedProducts.map((product) => (
-              <Link
-                key={product.id}
-                href={`/products/${product.slug}`}
-                className="block rounded-[1.25rem] border border-white/8 bg-black/25 p-4 transition hover:border-[var(--color-border-strong)]"
-              >
-                <p className="font-[family:var(--font-supporting)] text-[10px] uppercase tracking-[0.22em] text-[var(--color-text-muted)]">
-                  {product.subtitle}
-                </p>
-                <p className="mt-2 font-[family:var(--font-heading)] text-2xl uppercase leading-none text-[var(--color-text-primary)]">
-                  {product.title}
-                </p>
-                <p className="mt-3 text-sm text-[var(--color-text-secondary)]">
-                  {product.priceRange.min.formatted}
-                </p>
-                <p className="mt-3 font-[family:var(--font-supporting)] text-[10px] uppercase tracking-[0.22em] text-[var(--color-text-muted)]">
-                  Open product and stage the next piece
-                </p>
-              </Link>
-            ))}
-          </div>
-        </section>
+        {recommendedProducts.length > 0 ? (
+          <section className="rounded-[2rem] border border-white/8 bg-black/20 p-6">
+            <p className="font-[family:var(--font-supporting)] text-[10px] uppercase tracking-[0.28em] text-[var(--color-accent-gold-highlight)]">
+              Keep Building The Look
+            </p>
+            <div className="mt-5 space-y-4">
+              {recommendedProducts.map((product) => (
+                <Link
+                  key={product.id}
+                  href={`/products/${product.slug}`}
+                  className="block rounded-[1.25rem] border border-white/8 bg-black/25 p-4 transition hover:border-[var(--color-border-strong)]"
+                >
+                  <p className="font-[family:var(--font-supporting)] text-[10px] uppercase tracking-[0.22em] text-[var(--color-text-muted)]">
+                    {product.subtitle}
+                  </p>
+                  <p className="mt-2 font-[family:var(--font-heading)] text-2xl uppercase leading-none text-[var(--color-text-primary)]">
+                    {product.title}
+                  </p>
+                  <p className="mt-3 text-sm text-[var(--color-text-secondary)]">
+                    {product.priceRange.min.formatted}
+                  </p>
+                  <p className="mt-3 font-[family:var(--font-supporting)] text-[10px] uppercase tracking-[0.22em] text-[var(--color-text-muted)]">
+                    Open product and stage the next piece
+                  </p>
+                </Link>
+              ))}
+            </div>
+          </section>
+        ) : null}
       </aside>
     </div>
   );

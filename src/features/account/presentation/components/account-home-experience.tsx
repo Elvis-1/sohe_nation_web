@@ -9,12 +9,14 @@ import {
   getCustomerAccount,
   type CustomerAccountData,
 } from "../../data/services/get-customer-account";
+import { AccountLoadNotice } from "./account-load-notice";
 import { AccountOverviewShell } from "./account-overview-shell";
 
 export function AccountHomeExperience() {
   const { isAuthenticated, session } = useAccountAuth();
   const [account, setAccount] = useState<CustomerAccountData | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => {
     let isActive = true;
@@ -48,7 +50,7 @@ export function AccountHomeExperience() {
     return () => {
       isActive = false;
     };
-  }, [isAuthenticated, session]);
+  }, [isAuthenticated, session, refreshKey]);
 
   return (
     <AccountAccessGate
@@ -65,7 +67,14 @@ export function AccountHomeExperience() {
           </h2>
         </section>
       ) : (
-        <AccountOverviewShell account={account} />
+        <>
+          <AccountLoadNotice
+            account={account}
+            sections={["orders", "returns", "addresses"]}
+            onRetry={() => setRefreshKey((key) => key + 1)}
+          />
+          <AccountOverviewShell account={account} />
+        </>
       )}
     </AccountAccessGate>
   );

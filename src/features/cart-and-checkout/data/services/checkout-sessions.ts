@@ -1,4 +1,4 @@
-import type { Cart, CheckoutProvider, CheckoutSession } from "@/core/types/commerce";
+import type { Cart, CartSummary, CheckoutProvider, CheckoutSession, Money } from "@/core/types/commerce";
 import { resolveApiBaseUrl } from "@/core/api/resolve-api-base-url";
 
 type ShippingAddressInput = {
@@ -21,6 +21,34 @@ type ApiCheckoutSession = {
   currency: Cart["currency"];
   approvalUrl: string;
   providerStatus: string;
+};
+
+type ApiCheckoutQuote = {
+  currency: Cart["currency"];
+  lines: Array<{
+    product_id: string;
+    variant_id: string;
+    title: string;
+    variant_label: string;
+    quantity: number;
+    unit_price: Money;
+    line_total: Money;
+  }>;
+  summary: CartSummary;
+};
+
+export type CheckoutQuote = {
+  currency: Cart["currency"];
+  lines: Array<{
+    productId: string;
+    variantId: string;
+    title: string;
+    variantLabel: string;
+    quantity: number;
+    unitPrice: Money;
+    lineTotal: Money;
+  }>;
+  summary: CartSummary;
 };
 
 type AccountAuth = {
@@ -57,6 +85,14 @@ function toApiSession(payload: ApiCheckoutSession): CheckoutSession {
   };
 }
 
+function toRequestLines(cart: Cart) {
+  return cart.lines.map((line) => ({
+    product_id: line.productId,
+    variant_id: line.variantId,
+    quantity: line.quantity,
+  }));
+}
+
 async function parseError(response: Response, fallback: string): Promise<string> {
   const body = (await response.json().catch(() => null)) as ApiError | null;
   return body?.error?.message ?? fallback;
@@ -79,10 +115,6 @@ export async function createCheckoutSession(
       provider,
       region: cart.region,
       currency: cart.currency,
-      summary_total: {
-        amount: cart.summary.total.amount,
-        currency: cart.summary.total.currency,
-      },
       shipping_address: {
         recipient_name: shippingAddress.recipientName,
         phone: shippingAddress.phone ?? "",
@@ -94,17 +126,7 @@ export async function createCheckoutSession(
         country_code: shippingAddress.countryCode,
       },
       callback_url: `${STOREFRONT_BASE}/checkout/return`,
-      lines: cart.lines.map((line) => ({
-        product_id: line.productId,
-        variant_id: line.variantId,
-        title: line.title,
-        variant_label: line.variantLabel,
-        quantity: line.quantity,
-        unit_price: {
-          amount: line.unitPrice.amount,
-          currency: line.unitPrice.currency,
-        },
-      })),
+      lines: toRequestLines(cart),
     }),
   });
 
@@ -114,6 +136,41 @@ export async function createCheckoutSession(
 
   const payload = (await response.json()) as ApiCheckoutSession;
   return toApiSession(payload);
+}
+
+/**
+ * Prices the bag on the server. The returned summary is what the provider
+ * session will charge; the client-side cart summary is only an estimate.
+ */
+export async function getCheckoutQuote(cart: Cart): Promise<CheckoutQuote> {
+  const response = await fetch(`${API_BASE}/checkout/quote/`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      region: cart.region,
+      currency: cart.currency,
+      lines: toRequestLines(cart),
+    }),
+  });
+
+  if (!response.ok) {
+    throw new Error(await parseError(response, "Unable to price your bag right now."));
+  }
+
+  const payload = (await response.json()) as ApiCheckoutQuote;
+  return {
+    currency: payload.currency,
+    lines: payload.lines.map((line) => ({
+      productId: line.product_id,
+      variantId: line.variant_id,
+      title: line.title,
+      variantLabel: line.variant_label,
+      quantity: line.quantity,
+      unitPrice: line.unit_price,
+      lineTotal: line.line_total,
+    })),
+    summary: payload.summary,
+  };
 }
 
 export async function getCheckoutSession(

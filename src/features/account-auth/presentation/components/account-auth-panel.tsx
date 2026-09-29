@@ -10,8 +10,8 @@ type AccountAuthMode = "sign-in" | "register";
 const initialForm = {
   firstName: "",
   lastName: "",
-  email: "sohe.customer@fixture.test",
-  password: "mock-pass-123",
+  email: "",
+  password: "",
 };
 
 export function AccountAuthPanel() {
