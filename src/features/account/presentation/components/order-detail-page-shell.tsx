@@ -117,10 +117,11 @@ export function OrderDetailPageShell({ order }: OrderDetailPageShellProps) {
           ) : (
             <article className="rounded-[1.5rem] border border-white/8 bg-black/20 p-5">
               <p className="font-[family:var(--font-heading)] text-3xl uppercase leading-none text-[var(--color-text-primary)]">
-                No line details yet.
+                Item details unavailable.
               </p>
               <p className="mt-3 text-sm leading-7 text-[var(--color-text-secondary)]">
-                This order detail is not currently returning line items from the API for this entry.
+                We can&apos;t show the items for this order right now. Contact us with the order number
+                if you need them.
               </p>
             </article>
           )}

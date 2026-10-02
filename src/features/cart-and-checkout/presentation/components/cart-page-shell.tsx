@@ -34,7 +34,7 @@ export function CartPageShell() {
           Loading Bag
         </p>
         <p className="mt-3 text-sm leading-7 text-[var(--color-text-secondary)]">
-          Pulling your staged cart from this browser session.
+          Getting your bag ready.
         </p>
       </section>
     );
@@ -54,8 +54,8 @@ export function CartPageShell() {
               <span className="block text-[var(--color-accent-gold-highlight)]">has not landed here yet.</span>
             </h2>
             <p className="mt-5 max-w-2xl text-base leading-8 text-[var(--color-text-secondary)]">
-              Add a piece from the current drop and this bag will hold the line between product
-              discovery and checkout while the commerce flow stays fixture-first.
+              Add a piece from the current drop and it will wait here until you are ready to check
+              out.
             </p>
             <Link
               href="/products"
@@ -74,15 +74,15 @@ export function CartPageShell() {
             {[
               {
                 title: "1. Build the look",
-                body: "Choose the piece that sets the tone and let the bag start holding the line.",
+                body: "Pick the pieces that set the tone for your uniform.",
               },
               {
-                title: "2. Stage the quantity",
-                body: "Refine quantity and variant decisions before you step into payment.",
+                title: "2. Choose your size",
+                body: "Check the size and quantity of each piece before you pay.",
               },
               {
-                title: "3. Move to checkout",
-                body: "Carry the staged order forward into the hosted checkout flow.",
+                title: "3. Check out",
+                body: "Pay securely with PayPal or Flutterwave.",
               },
             ].map((step) => (
               <article
@@ -117,8 +117,7 @@ export function CartPageShell() {
               <span className="block text-[var(--color-accent-gold-highlight)]">held in formation.</span>
             </h2>
             <p className="mt-5 max-w-2xl text-base leading-8 text-[var(--color-text-secondary)]">
-              Refine the staged look, keep the totals in view, and carry the current line forward
-              into checkout without losing the campaign feel.
+              Check sizes and quantities, see your totals, and check out when you&apos;re ready.
             </p>
           </div>
           <Link
@@ -138,7 +137,7 @@ export function CartPageShell() {
               {largestLine?.title ?? "No line"}
             </p>
             <p className="mt-3 text-sm leading-7 text-[var(--color-text-secondary)]">
-              {largestLine?.variantLabel ?? "No variant selected"} staged for the next move.
+              {largestLine?.variantLabel ?? "No variant selected"} ready for checkout.
             </p>
           </article>
           <article className="flex h-full min-w-0 flex-col rounded-[1.5rem] border border-white/8 bg-black/25 p-5 backdrop-blur-sm">

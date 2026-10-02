@@ -7,6 +7,13 @@ export type Money = {
   formatted: string;
 };
 
+/** Staff-set search/share overrides; empty strings mean "use the default". */
+export type SeoOverrides = {
+  title: string;
+  description: string;
+  imageUrl: string;
+};
+
 export type MediaAsset = {
   id: string;
   alt: string;
@@ -46,6 +53,8 @@ export type Product = {
   category: "tracksuit" | "outerwear" | "tops" | "bottoms" | "headwear";
   gender: "women" | "men" | "unisex";
   media: MediaAsset[];
+  /** Only on the product detail read. */
+  seo?: SeoOverrides;
   priceRange: {
     min: Money;
     max: Money;
@@ -110,6 +119,18 @@ export type CheckoutSession = {
   provider: CheckoutProvider;
   approvalUrl: string;
   status: "created" | "pending_redirect" | "authorized" | "failed";
+  /** Present on the status read; used to report the purchase to analytics. */
+  orderId?: string;
+  orderNumber?: string;
+  total?: Money;
+  lines?: Array<{
+    productId: string;
+    variantId: string;
+    title: string;
+    variantLabel: string;
+    quantity: number;
+    unitPrice: Money;
+  }>;
 };
 
 export type OrderSummary = {

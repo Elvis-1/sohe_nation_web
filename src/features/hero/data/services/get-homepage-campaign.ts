@@ -1,3 +1,4 @@
+import { cachedContentRequest } from "@/core/api/cache";
 import { httpClient } from "@/core/api/http-client";
 import { resolveApiBaseUrl } from "@/core/api/resolve-api-base-url";
 import {
@@ -25,7 +26,7 @@ type ApiHomepagePayload = {
 
 // All campaign text is fixed. Only the hero video and featured products come from the API.
 export async function getHomepageContent() {
-  const dto = await httpClient<ApiHomepagePayload>(`${API_BASE}/content/homepage/`);
+  const dto = await httpClient<ApiHomepagePayload>(`${API_BASE}/content/homepage/`, cachedContentRequest);
   const heroMedia = dto.hero.media_references[0];
 
   return {

@@ -138,7 +138,7 @@ async function fetchStorefrontSettings(): Promise<{
   if (!API_BASE) {
     return {
       storeName: "Sohe's Nation",
-      supportEmail: "support@sohesnation.com",
+      supportEmail: "support@sohenation.com",
     };
   }
 
@@ -154,19 +154,19 @@ async function fetchStorefrontSettings(): Promise<{
     if (!response.ok) {
       return {
         storeName: "Sohe's Nation",
-        supportEmail: "support@sohesnation.com",
+        supportEmail: "support@sohenation.com",
       };
     }
 
     const payload = (await response.json()) as ApiStorefrontSettings;
     return {
       storeName: payload.store_name || "Sohe's Nation",
-      supportEmail: payload.support_email || "support@sohesnation.com",
+      supportEmail: payload.support_email || "support@sohenation.com",
     };
   } catch {
     return {
       storeName: "Sohe's Nation",
-      supportEmail: "support@sohesnation.com",
+      supportEmail: "support@sohenation.com",
     };
   }
 }

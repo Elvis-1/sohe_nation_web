@@ -1,7 +1,10 @@
+import { cache } from "react";
+
 import type { ProductDetail } from "@/features/product-detail/domain/entities/product-detail";
 import { getProductBySlug, getProducts } from "@/features/product-discovery/data/repositories/product-repository";
 
-export async function getProductDetail(slug: string): Promise<ProductDetail | null> {
+// `cache` shares one fetch between generateMetadata and the page render.
+export const getProductDetail = cache(async (slug: string): Promise<ProductDetail | null> => {
   const result = await getProductBySlug(slug);
 
   if (!result) {
@@ -28,4 +31,4 @@ export async function getProductDetail(slug: string): Promise<ProductDetail | nu
     deliveryNote: narrative.deliveryNote,
     lookbookMoments: narrative.lookbookMoments,
   };
-}
+});

@@ -8,6 +8,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import { track } from "@/core/analytics/track";
 import * as customerAuth from "@/features/account-auth/data/services/customer-auth";
 import type {
   AccountSession,
@@ -141,6 +142,7 @@ export function AccountAuthProvider({ children }: { children: ReactNode }) {
         setAuthError(null);
         try {
           setSession(await customerAuth.registerCustomer(input));
+          track({ name: "sign_up", method: "email" });
         } catch (error) {
           setSession(null);
           setAuthError(error instanceof Error ? error.message : "Unable to register.");

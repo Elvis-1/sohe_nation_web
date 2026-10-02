@@ -52,7 +52,7 @@ export function AccountAddressesExperience() {
   return (
     <AccountAccessGate
       title="Sign in to manage your addresses."
-      description="Saved delivery addresses now live in your account workspace so checkout can preload reliable shipping details."
+      description="Save your delivery addresses so checkout fills them in for you."
     >
       {account ? (
         <>

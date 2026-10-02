@@ -55,7 +55,7 @@ export function AccountHomeExperience() {
   return (
     <AccountAccessGate
       title="Sign in before we open your account."
-      description="Order history, saved profile details, and returns now live in a separate customer-account feature, while sign-in and registration stay isolated in the new account-auth feature."
+      description="Your orders, saved addresses, and returns, all in one place."
     >
       {isLoading || !account ? (
         <section className="rounded-[2rem] border border-[var(--color-border-subtle)] bg-[linear-gradient(180deg,rgba(28,26,23,0.98),rgba(10,10,10,0.98))] p-8">

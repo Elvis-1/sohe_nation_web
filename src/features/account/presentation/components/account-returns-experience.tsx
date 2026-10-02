@@ -54,8 +54,8 @@ export function AccountReturnsExperience() {
 
   return (
     <AccountAccessGate
-      title="Sign in to open your returns workspace."
-      description="Returns are managed inside your customer account. Sign in to view and submit return requests."
+      title="Sign in to manage your returns."
+      description="Sign in to start a return and follow its progress."
     >
       {account ? (
         <>
@@ -76,7 +76,7 @@ export function AccountReturnsExperience() {
             Returns
           </p>
           <h2 className="mt-4 font-[family:var(--font-heading)] text-5xl uppercase leading-none text-[var(--color-text-primary)]">
-            Opening your return workspace.
+            Opening your returns.
           </h2>
         </section>
       )}

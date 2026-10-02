@@ -1,3 +1,5 @@
+import type { SeoOverrides } from "@/core/types/commerce";
+
 export type LookbookStory = {
   slug: string;
   eyebrow: string;
@@ -10,6 +12,7 @@ export type LookbookStory = {
     alt: string;
   };
   chapterLabel: string;
+  seo?: SeoOverrides;
   campaignStatement: string;
   modules: Array<{
     title: string;

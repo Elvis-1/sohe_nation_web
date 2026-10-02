@@ -1,30 +1,54 @@
 "use client";
 
-import { FormEvent, useState, useTransition } from "react";
+import Link from "next/link";
+import { FormEvent, useState } from "react";
+
+import { track } from "@/core/analytics/track";
+
+import { subscribeToNewsletter } from "../../data/services/newsletter";
 
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+type Status = "idle" | "submitting" | "success" | "error";
+
 export function NewsletterSignup() {
   const [email, setEmail] = useState("");
+  const [status, setStatus] = useState<Status>("idle");
   const [message, setMessage] = useState<string | null>(null);
-  const [isPending, startTransition] = useTransition();
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    if (!emailPattern.test(email)) {
+    const trimmed = email.trim();
+    if (!emailPattern.test(trimmed)) {
+      setStatus("error");
       setMessage("Enter a valid email so we can hold your place on the drop list.");
       return;
     }
 
-    startTransition(() => {
-      setMessage("You’re on the release list. First notice goes to your inbox.");
+    setStatus("submitting");
+    setMessage(null);
+    try {
+      // Success only after the API has stored the sign-up.
+      setMessage(await subscribeToNewsletter(trimmed, "footer"));
+      track({ name: "generate_lead", source: "newsletter_footer" });
+      setStatus("success");
       setEmail("");
-    });
+    } catch (error) {
+      setStatus("error");
+      setMessage(error instanceof Error ? error.message : "We could not add you right now. Please try again.");
+    }
   }
 
+  const isSubmitting = status === "submitting";
+
   return (
-    <form onSubmit={handleSubmit} className="rounded-[1.75rem] border border-[var(--color-border-subtle)] bg-[linear-gradient(180deg,rgba(33,31,28,0.98),rgba(15,15,15,0.98))] p-6">
+    <form
+      onSubmit={handleSubmit}
+      noValidate
+      aria-label="Newsletter sign-up"
+      className="rounded-[1.75rem] border border-[var(--color-border-subtle)] bg-[linear-gradient(180deg,rgba(33,31,28,0.98),rgba(15,15,15,0.98))] p-6"
+    >
       <div className="flex items-start justify-between gap-4">
         <div>
           <p className="font-[family:var(--font-supporting)] text-xs uppercase tracking-[0.28em] text-[var(--color-accent-gold-highlight)]">
@@ -52,9 +76,11 @@ export function NewsletterSignup() {
             autoComplete="email"
             placeholder="Email address"
             value={email}
+            aria-invalid={status === "error"}
             onChange={(event) => {
               setEmail(event.target.value);
-              if (message) {
+              if (status !== "submitting" && message) {
+                setStatus("idle");
                 setMessage(null);
               }
             }}
@@ -63,18 +89,31 @@ export function NewsletterSignup() {
         </label>
         <button
           type="submit"
-          disabled={isPending}
+          disabled={isSubmitting}
           className="h-13 rounded-full bg-[var(--color-accent-gold)] px-6 font-[family:var(--font-supporting)] text-xs uppercase tracking-[0.24em] text-black transition hover:bg-[var(--color-accent-gold-highlight)] disabled:cursor-not-allowed disabled:opacity-70"
         >
-          {isPending ? "Securing" : "Join The List"}
+          {isSubmitting ? "Securing" : "Join The List"}
         </button>
       </div>
 
       <div className="mt-5 flex flex-wrap items-center justify-between gap-3 text-[11px] uppercase tracking-[0.22em]">
         <p className="font-[family:var(--font-supporting)] text-[var(--color-text-muted)]">
-          No spam. Only release-critical mail.
+          No spam. Confirm by email. Unsubscribe anytime. See our{" "}
+          <Link
+            href="/privacy"
+            className="text-[var(--color-text-secondary)] underline decoration-white/30 underline-offset-4 transition hover:text-[var(--color-text-primary)]"
+          >
+            privacy policy
+          </Link>
+          .
         </p>
-        <p className="font-[family:var(--font-supporting)] text-[var(--color-text-secondary)]">
+        <p
+          role="status"
+          aria-live="polite"
+          className={`font-[family:var(--font-supporting)] ${
+            status === "error" ? "text-[#ff9b8a]" : "text-[var(--color-text-secondary)]"
+          }`}
+        >
           {message ?? "First notice stays with the list."}
         </p>
       </div>

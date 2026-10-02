@@ -26,33 +26,40 @@
   --font-mono: var(--font-supporting);
 }
 
-* {
-  box-sizing: border-box;
+/* Element defaults live in the base layer so Tailwind utilities on an element (for example a
+   link's colour or underline) win over them. */
+@layer base {
+  * {
+    box-sizing: border-box;
+  }
+
+  html {
+    background:
+      radial-gradient(circle at top, rgba(214, 165, 72, 0.1), transparent 22%),
+      linear-gradient(180deg, #12110f 0%, var(--color-surface-base) 35%);
+  }
+
+  body {
+    margin: 0;
+    background: transparent;
+    color: var(--color-text-primary);
+    font-family: var(--font-body), sans-serif;
+  }
+
+  a {
+    color: inherit;
+    text-decoration: none;
+  }
+
+  img {
+    display: block;
+    max-width: 100%;
+  }
 }
 
-html {
-  background:
-    radial-gradient(circle at top, rgba(214, 165, 72, 0.1), transparent 22%),
-    linear-gradient(180deg, #12110f 0%, var(--color-surface-base) 35%);
-}
-
-body {
-  margin: 0;
-  background: transparent;
-  color: var(--color-text-primary);
-  font-family: var(--font-body), sans-serif;
-}
-
-a {
-  color: inherit;
-  text-decoration: none;
-}
-
-img {
-  display: block;
-  max-width: 100%;
-}
-
+/* Deliberately outside the base layer: form controls take the surrounding text size, which
+   overrides their small text-[10px] utility classes. The approved storefront design was built
+   with this behaviour; moving it into the layer shrinks every button label to 10px. */
 button,
 input,
 textarea,

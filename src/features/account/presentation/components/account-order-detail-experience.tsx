@@ -73,7 +73,7 @@ export function AccountOrderDetailExperience({ orderId }: AccountOrderDetailExpe
   return (
     <AccountAccessGate
       title="Sign in to open your order detail."
-      description="Order detail and line-item visibility are part of the customer-account feature and open only after account access is granted."
+      description="Sign in to see what you ordered, where it is, and where it's going."
     >
       {order ? (
         <OrderDetailPageShell order={order} />

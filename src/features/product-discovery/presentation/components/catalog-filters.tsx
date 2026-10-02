@@ -6,6 +6,9 @@ type CatalogFiltersProps = {
   facets: CatalogResult["availableFacets"];
   filters: CatalogResult["appliedFilters"];
   hideGenderFilter?: boolean;
+  hideCategoryFilter?: boolean;
+  /** Landing page the form submits to and "Clear All" returns to. */
+  basePath?: string;
 };
 
 function renderOptionLabel(label: string, count: number) {
@@ -16,9 +19,11 @@ export function CatalogFilters({
   facets,
   filters,
   hideGenderFilter = false,
+  hideCategoryFilter = false,
+  basePath = "/products",
 }: CatalogFiltersProps) {
   return (
-    <form className="rounded-[2rem] border border-[var(--color-border-subtle)] bg-[linear-gradient(180deg,rgba(33,31,28,0.98),rgba(12,12,12,0.98))] p-6" method="GET">
+    <form className="rounded-[2rem] border border-[var(--color-border-subtle)] bg-[linear-gradient(180deg,rgba(33,31,28,0.98),rgba(12,12,12,0.98))] p-6" method="GET" action={basePath}>
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <p className="font-[family:var(--font-supporting)] text-[10px] uppercase tracking-[0.26em] text-[var(--color-accent-gold-highlight)]">
@@ -29,7 +34,7 @@ export function CatalogFilters({
           </h2>
         </div>
         <Link
-          href="/products"
+          href={basePath}
           className="rounded-full border border-white/10 px-4 py-2 font-[family:var(--font-supporting)] text-[10px] uppercase tracking-[0.24em] text-[var(--color-text-secondary)] transition hover:border-[var(--color-border-strong)] hover:text-[var(--color-text-primary)]"
         >
           Clear All
@@ -50,23 +55,25 @@ export function CatalogFilters({
           />
         </label>
 
-        <label className="grid min-w-0 gap-2">
-          <span className="font-[family:var(--font-supporting)] text-[10px] uppercase tracking-[0.22em] text-[var(--color-text-muted)]">
-            Category
-          </span>
-          <select
-            name="category"
-            defaultValue={filters.category}
-            className="h-12 rounded-[1rem] border border-white/10 bg-black/25 px-4 text-sm text-[var(--color-text-primary)] outline-none transition focus:border-[var(--color-border-strong)]"
-          >
-            <option value="">All categories</option>
-            {facets.categories.map((facet) => (
-              <option key={facet.value} value={facet.value}>
-                {renderOptionLabel(facet.label, facet.count)}
-              </option>
-            ))}
-          </select>
-        </label>
+        {hideCategoryFilter ? null : (
+          <label className="grid min-w-0 gap-2">
+            <span className="font-[family:var(--font-supporting)] text-[10px] uppercase tracking-[0.22em] text-[var(--color-text-muted)]">
+              Category
+            </span>
+            <select
+              name="category"
+              defaultValue={filters.category}
+              className="h-12 rounded-[1rem] border border-white/10 bg-black/25 px-4 text-sm text-[var(--color-text-primary)] outline-none transition focus:border-[var(--color-border-strong)]"
+            >
+              <option value="">All categories</option>
+              {facets.categories.map((facet) => (
+                <option key={facet.value} value={facet.value}>
+                  {renderOptionLabel(facet.label, facet.count)}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
 
         {hideGenderFilter ? null : (
           <label className="grid min-w-0 gap-2">

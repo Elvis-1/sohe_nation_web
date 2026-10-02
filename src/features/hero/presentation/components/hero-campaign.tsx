@@ -1,7 +1,9 @@
+import Image from "next/image";
 import Link from "next/link";
 
 import type { HeroCampaign as HeroCampaignType } from "@/core/types/commerce";
 import { Container } from "@/core/ui/container";
+import { canOptimizeImage, optimizeVideoUrl } from "@/core/utils/image-hosts";
 import { safeHref } from "@/core/utils/safe-href";
 
 export function HeroCampaign({
@@ -9,6 +11,8 @@ export function HeroCampaign({
 }: {
   campaign: HeroCampaignType;
 }) {
+  const stillImage = campaign.media.type === "video" ? campaign.media.posterUrl : campaign.media.url;
+
   return (
     <section className="relative overflow-hidden py-6 md:py-10">
       <Container>
@@ -62,24 +66,34 @@ export function HeroCampaign({
             </div>
 
             <div className="relative min-h-[28rem] overflow-hidden rounded-[1.6rem] border border-white/10 bg-black/35">
+              {stillImage ? (
+                // The still is the page's largest image: load it first. With reduced motion it
+                // replaces the video entirely.
+                <Image
+                  src={stillImage}
+                  alt={campaign.media.alt}
+                  fill
+                  loading="eager"
+                  fetchPriority="high"
+                  sizes="(min-width: 1024px) 45vw, 100vw"
+                  unoptimized={!canOptimizeImage(stillImage)}
+                  className="object-cover opacity-70"
+                />
+              ) : null}
               {campaign.media.type === "video" ? (
                 <video
                   autoPlay
                   muted
                   loop
                   playsInline
-                  poster={campaign.media.posterUrl}
-                  className="absolute inset-0 h-full w-full object-cover opacity-70"
+                  preload="metadata"
+                  aria-hidden="true"
+                  className="absolute inset-0 h-full w-full object-cover opacity-70 motion-reduce:hidden"
                 >
-                  <source src={campaign.media.url} />
+                  {/* No poster attribute: the optimised still underneath already shows it. */}
+                  <source src={optimizeVideoUrl(campaign.media.url)} />
                 </video>
-              ) : (
-                <img
-                  src={campaign.media.url}
-                  alt={campaign.media.alt}
-                  className="absolute inset-0 h-full w-full object-cover opacity-70"
-                />
-              )}
+              ) : null}
               <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(0,0,0,0.16),rgba(0,0,0,0.7))]" />
               <div className="absolute inset-x-0 bottom-0 flex items-end justify-between gap-6 p-6">
                 <div>

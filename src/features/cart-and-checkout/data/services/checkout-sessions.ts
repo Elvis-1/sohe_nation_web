@@ -21,6 +21,16 @@ type ApiCheckoutSession = {
   currency: Cart["currency"];
   approvalUrl: string;
   providerStatus: string;
+  order_number?: string;
+  total?: Money;
+  lines?: Array<{
+    product_id: string;
+    variant_id: string;
+    title: string;
+    variant_label: string;
+    quantity: number;
+    unit_price: Money;
+  }>;
 };
 
 type ApiCheckoutQuote = {
@@ -82,6 +92,17 @@ function toApiSession(payload: ApiCheckoutSession): CheckoutSession {
           : payload.status === "pending_redirect"
             ? "pending_redirect"
             : "created",
+    orderId: payload.order_id,
+    orderNumber: payload.order_number,
+    total: payload.total,
+    lines: payload.lines?.map((line) => ({
+      productId: line.product_id,
+      variantId: line.variant_id,
+      title: line.title,
+      variantLabel: line.variant_label,
+      quantity: line.quantity,
+      unitPrice: line.unit_price,
+    })),
   };
 }
 

@@ -52,7 +52,7 @@ export function AccountOrdersExperience() {
   return (
     <AccountAccessGate
       title="Sign in to review order history."
-      description="The order-history UI now belongs to the customer-account feature and only opens after backend-backed customer access is granted."
+      description="Sign in to see your orders, follow their progress, and start a return."
     >
       {account ? (
         <>
