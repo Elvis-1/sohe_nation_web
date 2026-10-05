@@ -4,6 +4,8 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 
+import { cartLineItem, itemsValue } from "@/core/analytics/items";
+import { trackPurchaseOnce } from "@/core/analytics/track";
 import { useAccountAuth } from "@/features/account-auth/presentation/state/account-auth-provider";
 import { getCheckoutSession } from "@/features/cart-and-checkout/data/services/checkout-sessions";
 
@@ -38,11 +40,27 @@ export function CheckoutReturnPageShell() {
         );
         if (!isActive) return;
         if (checkoutSession.status === "authorized") {
+          // Only after the API confirms the payment; once per order.
+          const transactionId = checkoutSession.orderNumber ?? checkoutSession.orderId;
+          if (transactionId) {
+            const items = (checkoutSession.lines ?? []).map(cartLineItem);
+            trackPurchaseOnce({
+              name: "purchase",
+              transactionId,
+              currency: checkoutSession.total?.currency ?? checkoutSession.currency,
+              value: checkoutSession.total?.amount ?? itemsValue(items),
+              items,
+            });
+          }
           setState({ mode: "success", message: "Payment authorized successfully." });
           return;
         }
         if (checkoutSession.status === "failed") {
-          setState({ mode: "error", message: "Payment was not completed." });
+          setState({
+            mode: "error",
+            message:
+              "Payment was not completed. If you were charged, contact support with your order reference and we will resolve it.",
+          });
           return;
         }
         setState({ mode: "loading" });

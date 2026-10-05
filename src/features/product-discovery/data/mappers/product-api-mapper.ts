@@ -73,6 +73,9 @@ export type ApiProduct = {
   shipping?: ApiMoney | null;
   variants: ApiVariant[];
   narrative?: ApiNarrative | null;
+  seo_title?: string;
+  seo_description?: string;
+  share_image_url?: string;
 };
 
 export type ApiPaginatedProducts = {
@@ -149,6 +152,15 @@ export function mapApiProductToStorefront(api: ApiProduct): Product {
     priceRange,
     shippingCost: api.shipping ? mapMoney(api.shipping) : fallbackMoney,
     variants: api.variants.map(mapVariant),
+    ...(api.seo_title !== undefined
+      ? {
+          seo: {
+            title: api.seo_title ?? "",
+            description: api.seo_description ?? "",
+            imageUrl: api.share_image_url ?? "",
+          },
+        }
+      : {}),
   };
 }
 

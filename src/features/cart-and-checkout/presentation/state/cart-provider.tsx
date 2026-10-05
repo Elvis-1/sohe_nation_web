@@ -3,9 +3,8 @@
 import {
   createContext,
   useContext,
-  useEffect,
   useMemo,
-  useState,
+  useSyncExternalStore,
   type ReactNode,
 } from "react";
 
@@ -15,7 +14,7 @@ import {
   buildCart,
   createStoredCartLine,
   type StoredCartLine,
-} from "../../data/repositories/mock-cart-repository";
+} from "../../data/repositories/cart-repository";
 
 const STORAGE_KEY = "sohe-storefront-cart";
 
@@ -36,52 +35,70 @@ type CartContextValue = {
 };
 
 const emptyCart = buildCart([]);
+const EMPTY_LINES: StoredCartLine[] = [];
 
 const CartContext = createContext<CartContextValue | null>(null);
 
-function readStoredLines(): StoredCartLine[] {
-  if (typeof window === "undefined") {
-    return [];
-  }
+// Browser storage is the cart's source of truth (api/PLAN.md Slice 9), read as an external
+// store so every tab and component sees the same lines without copying them into state.
+const cartListeners = new Set<() => void>();
+let cachedRaw: string | null = null;
+let cachedLines: StoredCartLine[] = EMPTY_LINES;
 
+function readRaw(): string | null {
   try {
-    const value = window.localStorage.getItem(STORAGE_KEY);
-
-    if (!value) {
-      return [];
-    }
-
-    const parsed = JSON.parse(value);
-
-    return Array.isArray(parsed) ? parsed : [];
+    return window.localStorage.getItem(STORAGE_KEY);
   } catch {
-    return [];
+    return null;
   }
 }
 
-function persistLines(lines: StoredCartLine[]) {
-  if (typeof window === "undefined") {
-    return;
+function getLinesSnapshot(): StoredCartLine[] {
+  const raw = readRaw();
+  if (raw === cachedRaw) return cachedLines;
+
+  cachedRaw = raw;
+  try {
+    const parsed = raw ? JSON.parse(raw) : [];
+    cachedLines = Array.isArray(parsed) ? parsed : EMPTY_LINES;
+  } catch {
+    cachedLines = EMPTY_LINES;
   }
-  window.localStorage.setItem(STORAGE_KEY, JSON.stringify(lines));
+  return cachedLines;
 }
+
+function getServerLinesSnapshot(): StoredCartLine[] {
+  return EMPTY_LINES;
+}
+
+function subscribeToLines(onChange: () => void) {
+  cartListeners.add(onChange);
+  const onStorage = (event: StorageEvent) => {
+    if (event.key === STORAGE_KEY) onChange();
+  };
+  window.addEventListener("storage", onStorage);
+  return () => {
+    cartListeners.delete(onChange);
+    window.removeEventListener("storage", onStorage);
+  };
+}
+
+function writeLines(update: (current: StoredCartLine[]) => StoredCartLine[]) {
+  const next = update(getLinesSnapshot());
+  try {
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+  } catch {
+    // Storage can be unavailable (private mode); the bag then lasts only for this render.
+  }
+  cartListeners.forEach((listener) => listener());
+}
+
+const subscribeNever = () => () => undefined;
 
 export function CartProvider({ children }: { children: ReactNode }) {
-  const [storedLines, setStoredLines] = useState<StoredCartLine[]>([]);
-  const [isHydrated, setIsHydrated] = useState(false);
-
-  useEffect(() => {
-    const persisted = readStoredLines();
-    setStoredLines((current) => (current.length ? current : persisted));
-    setIsHydrated(true);
-  }, []);
-
-  useEffect(() => {
-    if (!isHydrated) {
-      return;
-    }
-    persistLines(storedLines);
-  }, [isHydrated, storedLines]);
+  const storedLines = useSyncExternalStore(subscribeToLines, getLinesSnapshot, getServerLinesSnapshot);
+  // False during server render and hydration, true once running in the browser.
+  const isHydrated = useSyncExternalStore(subscribeNever, () => true, () => false);
 
   const cart = useMemo(() => buildCart(storedLines), [storedLines]);
   const itemCount = useMemo(
@@ -95,47 +112,36 @@ export function CartProvider({ children }: { children: ReactNode }) {
       itemCount,
       isHydrated,
       addItem: ({ product, variantId, quantity = 1 }) => {
-        setStoredLines((current) => {
+        writeLines((current) => {
           const existingIndex = current.findIndex((line) => line.variantId === variantId);
 
           if (existingIndex >= 0) {
-            const next = current.map((line, index) =>
+            return current.map((line, index) =>
               index === existingIndex
                 ? { ...line, quantity: line.quantity + quantity }
                 : line,
             );
-            persistLines(next);
-            return next;
           }
 
-          const next = [...current, createStoredCartLine(product, variantId, quantity)];
-          persistLines(next);
-          return next;
+          return [...current, createStoredCartLine(product, variantId, quantity)];
         });
       },
       updateQuantity: (variantId, quantity) => {
-        setStoredLines((current) => {
-          const next = current
+        writeLines((current) =>
+          current
             .map((line) =>
               line.variantId === variantId
                 ? { ...line, quantity: Math.max(0, quantity) }
                 : line,
             )
-            .filter((line) => line.quantity > 0);
-          persistLines(next);
-          return next;
-        });
+            .filter((line) => line.quantity > 0),
+        );
       },
       removeItem: (variantId) => {
-        setStoredLines((current) => {
-          const next = current.filter((line) => line.variantId !== variantId);
-          persistLines(next);
-          return next;
-        });
+        writeLines((current) => current.filter((line) => line.variantId !== variantId));
       },
       clearCart: () => {
-        persistLines([]);
-        setStoredLines([]);
+        writeLines(() => []);
       },
     }),
     [cart, isHydrated, itemCount],

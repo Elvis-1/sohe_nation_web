@@ -23,7 +23,7 @@ export function AccountAccessGate({
           Loading Account
         </p>
         <h2 className="mt-4 font-[family:var(--font-heading)] text-5xl uppercase leading-none text-[var(--color-text-primary)]">
-          Preparing the customer surface.
+          Opening your account.
         </h2>
       </section>
     );

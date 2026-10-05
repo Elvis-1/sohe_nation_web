@@ -10,8 +10,8 @@ type AccountAuthMode = "sign-in" | "register";
 const initialForm = {
   firstName: "",
   lastName: "",
-  email: "sohe.customer@fixture.test",
-  password: "mock-pass-123",
+  email: "",
+  password: "",
 };
 
 export function AccountAuthPanel() {
@@ -60,8 +60,9 @@ export function AccountAuthPanel() {
         {mode === "sign-in" ? "Return to the campaign." : "Create your customer profile."}
       </h2>
       <p className="mt-4 text-sm leading-7 text-[var(--color-text-secondary)]">
-        Account entry now runs through the backend customer auth layer, so sign-in and registration
-        open the live account surfaces instead of a mocked credential bridge.
+        {mode === "sign-in"
+          ? "Sign in to follow your orders, start returns, and check out faster."
+          : "Create an account to check out, follow your orders, and start returns."}
       </p>
 
       <div className="mt-6 grid gap-4">

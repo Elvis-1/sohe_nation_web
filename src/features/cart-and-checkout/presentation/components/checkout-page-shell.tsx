@@ -1,8 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
+import { cartLineItem, itemsValue } from "@/core/analytics/items";
+import { track } from "@/core/analytics/track";
 import type { CheckoutProvider, RegionCode } from "@/core/types/commerce";
 import { useAccountAuth } from "@/features/account-auth/presentation/state/account-auth-provider";
 import {
@@ -13,15 +15,16 @@ import {
 } from "@/features/account/data/services/account-addresses";
 import { createCheckoutSession } from "@/features/cart-and-checkout/data/services/checkout-sessions";
 import { useCart } from "../state/cart-provider";
+import { useCheckoutQuote } from "../state/use-checkout-quote";
 
 const providerLabels: Record<CheckoutProvider, { title: string; body: string }> = {
   paypal: {
-    title: "PayPal Hosted Flow",
-    body: "Use the global wallet route for faster approval and cross-border readiness.",
+    title: "PayPal",
+    body: "Pay with your PayPal account or a card on PayPal's secure checkout.",
   },
   flutterwave: {
-    title: "Flutterwave Hosted Flow",
-    body: "Use the Africa-first hosted checkout for regional convenience and local rails.",
+    title: "Flutterwave",
+    body: "Pay by card or a local payment method on Flutterwave's secure checkout.",
   },
 };
 
@@ -77,18 +80,36 @@ function readStoredCheckoutAddress(): ShippingAddressState | null {
 }
 
 export function CheckoutPageShell() {
-  const { cart, clearCart, isHydrated } = useCart();
+  const { cart, isHydrated } = useCart();
   const { isAuthenticated, session } = useAccountAuth();
-  const [provider, setProvider] = useState<CheckoutProvider>("paypal");
+  // Flutterwave is the only provider the API accepts until PayPal credentials exist (api/PLAN.md Slice 9).
+  const [provider, setProvider] = useState<CheckoutProvider>("flutterwave");
   const [status, setStatus] = useState<"idle" | "submitting" | "success">("idle");
-  const [sessionId, setSessionId] = useState("");
   const [formError, setFormError] = useState<string | null>(null);
   const [defaultAddress, setDefaultAddress] = useState<CustomerAddress | null>(null);
   const [saveAddress, setSaveAddress] = useState(true);
   const [shippingAddress, setShippingAddress] = useState<ShippingAddressState>(
     () => readStoredCheckoutAddress() ?? emptyShippingAddress,
   );
+  const { quote, quoteError, isQuoteReady, summary } = useCheckoutQuote(cart, isHydrated);
   const selectedProvider = providerLabels[provider];
+  const reviewLines = quote
+    ? quote.lines.map((line) => ({
+        id: `${line.productId}:${line.variantId}`,
+        title: line.title,
+        quantity: line.quantity,
+        lineTotal: line.lineTotal,
+      }))
+    : cart.lines;
+
+  // `begin_checkout` once per visit to checkout, after the stored bag has loaded.
+  const checkoutTracked = useRef(false);
+  useEffect(() => {
+    if (!isHydrated || checkoutTracked.current || !cart.lines.length) return;
+    checkoutTracked.current = true;
+    const items = cart.lines.map(cartLineItem);
+    track({ name: "begin_checkout", currency: cart.currency, value: itemsValue(items), items });
+  }, [isHydrated, cart]);
 
   useEffect(() => {
     let isActive = true;
@@ -146,6 +167,10 @@ export function CheckoutPageShell() {
   }, [shippingAddress]);
 
   async function handleCheckout() {
+    if (!isQuoteReady) {
+      setFormError(quoteError ?? "Your bag is still being priced. Try again in a moment.");
+      return;
+    }
     if (!shippingAddress.recipientName.trim() || !shippingAddress.line1.trim() || !shippingAddress.city.trim() || !shippingAddress.state.trim()) {
       setFormError("Recipient, address line, city, and state are required before checkout.");
       return;
@@ -202,7 +227,6 @@ export function CheckoutPageShell() {
         shippingAddress,
         { token: session.token },
       );
-      setSessionId(checkoutSession.id);
       setStatus("success");
       if (checkoutSession.approvalUrl) {
         window.location.assign(checkoutSession.approvalUrl);
@@ -237,15 +261,14 @@ export function CheckoutPageShell() {
           <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(214,165,72,0.18),transparent_32%),linear-gradient(160deg,transparent,rgba(255,255,255,0.03)_52%,transparent_70%)]" />
           <div className="relative z-10">
             <div className="inline-flex rounded-full border border-[var(--color-border-strong)] bg-black/30 px-4 py-2 font-[family:var(--font-supporting)] text-[10px] uppercase tracking-[0.24em] text-[var(--color-accent-gold-highlight)]">
-              Checkout Waiting
+              Bag Empty
             </div>
             <h2 className="mt-6 font-[family:var(--font-heading)] text-6xl uppercase leading-[0.9] text-[var(--color-text-primary)] md:text-7xl">
               Add a look
-              <span className="block text-[var(--color-accent-gold-highlight)]">before routing payment.</span>
+              <span className="block text-[var(--color-accent-gold-highlight)]">before you check out.</span>
             </h2>
             <p className="mt-5 max-w-2xl text-base leading-8 text-[var(--color-text-secondary)]">
-              The hosted checkout flow expects an active bag so it can generate a provider session,
-              preserve the order review, and hand the customer forward with confidence.
+              Your bag is empty. Add a piece from the current drop, then come back to pay.
             </p>
             <Link
               href="/bag"
@@ -258,21 +281,21 @@ export function CheckoutPageShell() {
 
         <section className="rounded-[2rem] border border-white/8 bg-[linear-gradient(160deg,rgba(24,22,20,0.98),rgba(8,8,8,0.98))] p-6 md:p-8">
           <p className="font-[family:var(--font-supporting)] text-[10px] uppercase tracking-[0.28em] text-[var(--color-accent-gold-highlight)]">
-            Hosted Flow
+            How Checkout Works
           </p>
           <div className="mt-5 space-y-4">
             {[
               {
-                title: "1. Stage the bag",
-                body: "Bring the current line forward from bag so checkout can hold the right order review.",
+                title: "1. Build your bag",
+                body: "Add pieces from the current drop, then come back here.",
               },
               {
-                title: "2. Pick the provider",
-                body: "Choose PayPal or Flutterwave based on the handoff that best fits the customer.",
+                title: "2. Choose how to pay",
+                body: "Pay with PayPal or Flutterwave.",
               },
               {
-                title: "3. Create the session",
-                body: "Simulate the hosted redirect flow before the real payment integration arrives.",
+                title: "3. Pay securely",
+                body: "Finish payment on the provider's secure page and come straight back to your confirmed order.",
               },
             ].map((step) => (
               <article
@@ -299,15 +322,15 @@ export function CheckoutPageShell() {
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(214,165,72,0.18),transparent_32%),linear-gradient(160deg,transparent,rgba(255,255,255,0.03)_52%,transparent_70%)]" />
         <div className="relative z-10">
           <div className="inline-flex rounded-full border border-[var(--color-border-strong)] bg-black/30 px-4 py-2 font-[family:var(--font-supporting)] text-[10px] uppercase tracking-[0.24em] text-[var(--color-accent-gold-highlight)]">
-            Hosted Checkout
+            Secure Checkout
           </div>
           <h2 className="mt-6 font-[family:var(--font-heading)] text-6xl uppercase leading-[0.9] text-[var(--color-text-primary)] md:text-7xl">
-            Choose the handoff,
-            <span className="block text-[var(--color-accent-gold-highlight)]">then route the order forward.</span>
+            Where it&apos;s going,
+            <span className="block text-[var(--color-accent-gold-highlight)]">and how you&apos;ll pay.</span>
           </h2>
           <p className="mt-5 max-w-2xl text-base leading-8 text-[var(--color-text-secondary)]">
-            This checkout flow is shaped around the hosted provider transition, so contact, delivery,
-            and payment selection stay readable and trustworthy before the redirect moment.
+            Confirm your delivery address and choose how to pay. You finish payment on the
+            provider&apos;s secure page, then come straight back here.
           </p>
         </div>
 
@@ -406,7 +429,7 @@ export function CheckoutPageShell() {
 
           <div className="min-w-0 rounded-[1.75rem] border border-[var(--color-border-strong)] bg-[linear-gradient(180deg,rgba(214,165,72,0.12),rgba(0,0,0,0.12))] p-5">
             <p className="font-[family:var(--font-supporting)] text-[10px] uppercase tracking-[0.22em] text-[var(--color-text-muted)]">
-              Selected provider
+              Paying with
             </p>
             <p className="mt-3 min-w-0 text-balance break-words font-[family:var(--font-heading)] text-4xl uppercase leading-none text-[var(--color-text-primary)] lg:text-5xl">
               {selectedProvider.title}
@@ -416,10 +439,10 @@ export function CheckoutPageShell() {
             </p>
             <div className="mt-5 flex flex-wrap gap-3 border-t border-white/10 pt-4">
               <div className="rounded-full border border-white/10 px-4 py-2 font-[family:var(--font-supporting)] text-[10px] uppercase tracking-[0.22em] text-[var(--color-text-primary)]">
-                Hosted redirect
+                Secure payment page
               </div>
               <div className="rounded-full border border-white/10 px-4 py-2 font-[family:var(--font-supporting)] text-[10px] uppercase tracking-[0.22em] text-[var(--color-text-primary)]">
-                Session-based flow
+                We never see your card
               </div>
             </div>
           </div>
@@ -427,7 +450,7 @@ export function CheckoutPageShell() {
 
         <div className="relative z-10 mt-8 rounded-[2rem] border border-[var(--color-border-subtle)] bg-[rgba(8,8,8,0.35)] p-6">
           <p className="font-[family:var(--font-supporting)] text-[10px] uppercase tracking-[0.28em] text-[var(--color-accent-gold-highlight)]">
-            Payment Provider
+            Payment Method
           </p>
           <div className="mt-5 grid gap-4">
             {Object.entries(providerLabels).map(([key, value]) => (
@@ -463,14 +486,18 @@ export function CheckoutPageShell() {
               Checkout total
             </p>
             <p className="mt-3 font-[family:var(--font-heading)] text-5xl uppercase leading-none text-[var(--color-text-primary)]">
-              {cart.summary.total.formatted}
+              {summary.total.formatted}
             </p>
             <p className="mt-3 text-sm leading-7 text-[var(--color-text-secondary)]">
-              This is the fixture-mode handoff total that will be carried into the hosted provider session.
+              {quoteError
+                ? quoteError
+                : quote
+                  ? "Confirmed against current prices and stock. This is the amount you will be charged."
+                  : "Confirming current prices and stock..."}
             </p>
           </div>
           <div className="mt-5 space-y-3">
-            {cart.lines.map((line) => (
+            {reviewLines.map((line) => (
               <div
                 key={line.id}
                 className="flex items-center justify-between rounded-[1rem] border border-white/8 bg-black/20 px-4 py-3 text-sm text-[var(--color-text-secondary)]"
@@ -485,15 +512,15 @@ export function CheckoutPageShell() {
           <div className="mt-5 space-y-3 border-t border-white/8 pt-5 text-sm text-[var(--color-text-secondary)]">
             <div className="flex items-center justify-between">
               <span>Subtotal</span>
-              <span>{cart.summary.subtotal.formatted}</span>
+              <span>{summary.subtotal.formatted}</span>
             </div>
             <div className="flex items-center justify-between">
               <span>Shipping</span>
-              <span>{cart.summary.shipping.formatted}</span>
+              <span>{summary.shipping.formatted}</span>
             </div>
             <div className="flex items-center justify-between">
               <span>Discount</span>
-              <span>- {cart.summary.discount.formatted}</span>
+              <span>- {summary.discount.formatted}</span>
             </div>
           </div>
           <div className="mt-5 flex items-center justify-between border-t border-white/8 pt-5">
@@ -501,7 +528,7 @@ export function CheckoutPageShell() {
               Total
             </span>
             <span className="font-[family:var(--font-heading)] text-4xl uppercase leading-none text-[var(--color-text-primary)]">
-              {cart.summary.total.formatted}
+              {summary.total.formatted}
             </span>
           </div>
           {defaultAddress ? (
@@ -526,11 +553,13 @@ export function CheckoutPageShell() {
           {formError ? <p className="mt-3 text-sm text-[#ff9b8a]">{formError}</p> : null}
           <button
             type="button"
-            disabled={status === "submitting"}
+            disabled={status === "submitting" || !isQuoteReady}
             onClick={handleCheckout}
             className="mt-6 w-full rounded-full bg-[var(--color-accent-gold)] px-5 py-4 font-[family:var(--font-supporting)] text-[10px] uppercase tracking-[0.24em] text-black transition hover:bg-[var(--color-accent-gold-highlight)] disabled:opacity-60"
           >
-            {status === "submitting" ? "Creating Session..." : `Create ${provider} Session`}
+            {status === "submitting"
+              ? `Connecting to ${selectedProvider.title}...`
+              : `Pay with ${selectedProvider.title}`}
           </button>
           <div className="mt-4 flex flex-wrap gap-3">
             <Link
@@ -541,41 +570,25 @@ export function CheckoutPageShell() {
             </Link>
           </div>
           <p className="mt-4 text-sm leading-7 text-[var(--color-text-secondary)]">
-            Checkout now creates a backend session and hands off to the selected provider.
+            Payment is taken on the provider&apos;s secure page. Your card details never reach us.
           </p>
         </section>
 
         {status === "success" ? (
           <section className="rounded-[2rem] border border-[var(--color-border-strong)] bg-[rgba(214,165,72,0.08)] p-6">
             <p className="font-[family:var(--font-supporting)] text-[10px] uppercase tracking-[0.28em] text-[var(--color-accent-gold-highlight)]">
-              Session Ready
+              Redirecting
             </p>
             <h3 className="mt-4 font-[family:var(--font-heading)] text-4xl uppercase leading-none text-[var(--color-text-primary)]">
-              Hosted handoff prepared.
+              Taking you to secure payment.
             </h3>
             <p className="mt-4 text-sm leading-7 text-[var(--color-text-secondary)]">
-              Session <span className="text-[var(--color-text-primary)]">{sessionId}</span> is ready
-              for redirect handling through {selectedProvider.title}. Order history will only update
-              after a real API-backed checkout creates and reconciles an order.
+              You&apos;re being sent to {selectedProvider.title} to pay. If nothing happens in a few
+              seconds, try again; your bag is kept until the payment is confirmed.
             </p>
             <p className="mt-3 text-sm text-[var(--color-text-secondary)]">
-              Shipping snapshot prepared for: {shippingAddress.line1}, {shippingAddress.city}, {shippingAddress.state}.
+              Delivering to: {shippingAddress.line1}, {shippingAddress.city}, {shippingAddress.state}.
             </p>
-            <div className="mt-5 flex flex-wrap gap-3">
-              <button
-                type="button"
-                onClick={clearCart}
-                className="rounded-full border border-white/10 px-4 py-3 font-[family:var(--font-supporting)] text-[10px] uppercase tracking-[0.22em] text-[var(--color-text-primary)] transition hover:border-[var(--color-border-strong)]"
-              >
-                Clear Mock Bag
-              </button>
-              <Link
-                href={isAuthenticated ? "/account/orders" : "/account"}
-                className="rounded-full bg-[var(--color-accent-gold)] px-4 py-3 font-[family:var(--font-supporting)] text-[10px] uppercase tracking-[0.22em] text-black transition hover:bg-[var(--color-accent-gold-highlight)]"
-              >
-                {isAuthenticated ? "Review Orders Surface" : "Open Account Access"}
-              </Link>
-            </div>
           </section>
         ) : null}
       </aside>

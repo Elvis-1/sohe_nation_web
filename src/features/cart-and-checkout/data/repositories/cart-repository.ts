@@ -1,5 +1,9 @@
-import type { Cart, CartLine, CheckoutProvider, CheckoutSession, CurrencyCode, Product } from "@/core/types/commerce";
-import { storefrontMock } from "@/mocks/storefront";
+/**
+ * Client-side bag: lines live in browser storage (see api/PLAN.md Slice 9 cart decision).
+ * Totals here are display estimates; checkout prices come from the server quote.
+ */
+
+import type { Cart, CartLine, CurrencyCode, Product } from "@/core/types/commerce";
 
 export type StoredCartLine = {
   productId: string;
@@ -22,10 +26,6 @@ function formatMoney(amount: number, currency: CurrencyCode = "NGN") {
     currency,
     formatted: `${currency} ${amount.toLocaleString(locale)}`,
   };
-}
-
-function findProduct(productId: string) {
-  return storefrontMock.featuredProducts.find((product) => product.id === productId);
 }
 
 function findVariant(product: Product, variantId: string) {
@@ -72,7 +72,7 @@ export function createStoredCartLine(product: Product, variantId: string, quanti
 
 export function buildCart(lines: StoredCartLine[]): Cart {
   const hydratedLines: CartLine[] = lines.flatMap((line) => {
-    // Preferred path: hydrate directly from stored snapshot so API-backed products remain stable.
+    // Hydrate from the stored snapshot so API-backed products remain stable.
     if (
       line.title &&
       line.variantLabel &&
@@ -105,35 +105,8 @@ export function buildCart(lines: StoredCartLine[]): Cart {
       ];
     }
 
-    // Backward-compat path for older localStorage entries from the fixture-only phase.
-    const product = findProduct(line.productId);
-
-    if (!product) {
-      return [];
-    }
-
-    const variant = findVariant(product, line.variantId);
-
-    if (!variant) {
-      return [];
-    }
-
-    const quantity = Math.max(1, line.quantity);
-    const lineTotalAmount = variant.price.amount * quantity;
-
-    return [
-      {
-        id: `${line.productId}:${line.variantId}`,
-        productId: product.id,
-        variantId: variant.id,
-        title: product.title,
-        variantLabel: `${variant.color} / ${variant.size}`,
-        quantity,
-        unitPrice: variant.price,
-        lineTotal: formatMoney(lineTotalAmount, variant.price.currency),
-        shippingTotal: formatMoney(0, variant.price.currency),
-      },
-    ];
+    // Lines without a price snapshot predate the API catalog and cannot be priced; drop them.
+    return [];
   });
 
   const subtotalAmount = hydratedLines.reduce((sum, line) => sum + line.lineTotal.amount, 0);
@@ -143,7 +116,7 @@ export function buildCart(lines: StoredCartLine[]): Cart {
   const totalAmount = subtotalAmount + shippingAmount - discountAmount;
 
   return {
-    id: "mock-cart-ng",
+    id: "local-cart",
     region: "NG",
     currency: "NGN",
     lines: hydratedLines,
@@ -153,41 +126,5 @@ export function buildCart(lines: StoredCartLine[]): Cart {
       discount: formatMoney(discountAmount, summaryCurrency),
       total: formatMoney(totalAmount, summaryCurrency),
     },
-  };
-}
-
-export function getCartProducts(cart: Cart) {
-  return cart.lines
-    .map((line) => findProduct(line.productId))
-    .filter((product): product is Product => Boolean(product));
-}
-
-export function getRecommendedProducts(cart: Cart): Product[] {
-  const cartProductIds = new Set(cart.lines.map((line) => line.productId));
-
-  return storefrontMock.featuredProducts
-    .filter((product) => !cartProductIds.has(product.id))
-    .slice(0, 3);
-}
-
-export function getRecommendedProductsForProductIds(productIds: string[]): Product[] {
-  const cartProductIds = new Set(productIds);
-
-  return storefrontMock.featuredProducts
-    .filter((product) => !cartProductIds.has(product.id))
-    .slice(0, 3);
-}
-
-export async function createMockCheckoutSession(
-  cart: Cart,
-  provider: CheckoutProvider,
-): Promise<CheckoutSession> {
-  return {
-    id: `chk_${provider}_${cart.lines.length || 1}`,
-    region: cart.region,
-    currency: cart.currency,
-    provider,
-    approvalUrl: `https://mock.sohe.test/checkout/${provider}`,
-    status: "pending_redirect",
   };
 }

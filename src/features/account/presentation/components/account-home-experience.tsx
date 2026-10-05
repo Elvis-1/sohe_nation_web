@@ -9,12 +9,14 @@ import {
   getCustomerAccount,
   type CustomerAccountData,
 } from "../../data/services/get-customer-account";
+import { AccountLoadNotice } from "./account-load-notice";
 import { AccountOverviewShell } from "./account-overview-shell";
 
 export function AccountHomeExperience() {
   const { isAuthenticated, session } = useAccountAuth();
   const [account, setAccount] = useState<CustomerAccountData | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => {
     let isActive = true;
@@ -48,12 +50,12 @@ export function AccountHomeExperience() {
     return () => {
       isActive = false;
     };
-  }, [isAuthenticated, session]);
+  }, [isAuthenticated, session, refreshKey]);
 
   return (
     <AccountAccessGate
       title="Sign in before we open your account."
-      description="Order history, saved profile details, and returns now live in a separate customer-account feature, while sign-in and registration stay isolated in the new account-auth feature."
+      description="Your orders, saved addresses, and returns, all in one place."
     >
       {isLoading || !account ? (
         <section className="rounded-[2rem] border border-[var(--color-border-subtle)] bg-[linear-gradient(180deg,rgba(28,26,23,0.98),rgba(10,10,10,0.98))] p-8">
@@ -65,7 +67,14 @@ export function AccountHomeExperience() {
           </h2>
         </section>
       ) : (
-        <AccountOverviewShell account={account} />
+        <>
+          <AccountLoadNotice
+            account={account}
+            sections={["orders", "returns", "addresses"]}
+            onRetry={() => setRefreshKey((key) => key + 1)}
+          />
+          <AccountOverviewShell account={account} />
+        </>
       )}
     </AccountAccessGate>
   );

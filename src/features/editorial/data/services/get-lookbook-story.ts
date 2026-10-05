@@ -1,4 +1,7 @@
+import { cache } from "react";
+
 import type { Money, Product } from "@/core/types/commerce";
+import { cachedContentRequest } from "@/core/api/cache";
 import { HttpError, httpClient } from "@/core/api/http-client";
 import { resolveApiBaseUrl } from "@/core/api/resolve-api-base-url";
 
@@ -71,6 +74,9 @@ type ApiStory = {
     note: string;
   }>;
   linked_products: ApiProduct[];
+  seo_title?: string;
+  seo_description?: string;
+  share_image_url?: string;
 };
 
 function mapProduct(api: ApiProduct): Product {
@@ -146,6 +152,11 @@ function mapStory(api: ApiStory): LookbookStory & { linkedProducts: Product[] } 
       alt: api.hero_media?.alt ?? api.title,
     },
     chapterLabel: api.chapter_label,
+    seo: {
+      title: api.seo_title ?? "",
+      description: api.seo_description ?? "",
+      imageUrl: api.share_image_url ?? "",
+    },
     campaignStatement: api.campaign_statement,
     modules: api.modules,
     hotspots: api.hotspots.map((hotspot) => ({
@@ -161,13 +172,14 @@ function mapStory(api: ApiStory): LookbookStory & { linkedProducts: Product[] } 
 }
 
 export async function getLookbookStories() {
-  const stories = await httpClient<ApiStory[]>(`${API_BASE}/content/stories/`);
+  const stories = await httpClient<ApiStory[]>(`${API_BASE}/content/stories/`, cachedContentRequest);
   return stories.map(mapStory);
 }
 
-export async function getLookbookStory(slug: string) {
+// `cache` shares one fetch between generateMetadata and the page render.
+export const getLookbookStory = cache(async (slug: string) => {
   try {
-    const story = await httpClient<ApiStory>(`${API_BASE}/content/stories/${slug}/`);
+    const story = await httpClient<ApiStory>(`${API_BASE}/content/stories/${slug}/`, cachedContentRequest);
     return mapStory(story);
   } catch (error) {
     if (error instanceof HttpError && error.status === 404) {
@@ -175,4 +187,4 @@ export async function getLookbookStory(slug: string) {
     }
     throw error;
   }
-}
+});

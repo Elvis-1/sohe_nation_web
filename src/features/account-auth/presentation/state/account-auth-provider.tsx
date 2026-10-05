@@ -8,53 +8,24 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { resolveApiBaseUrl } from "@/core/api/resolve-api-base-url";
+import { track } from "@/core/analytics/track";
+import * as customerAuth from "@/features/account-auth/data/services/customer-auth";
+import type {
+  AccountSession,
+  CustomerCredentials,
+} from "@/features/account-auth/data/services/customer-auth";
+
+export type { AccountSession };
 
 const STORAGE_KEY = "sohe-storefront-account-session";
-const API_BASE = resolveApiBaseUrl({ preferInternal: false });
-
-export type AccountSession = {
-  isAuthenticated: boolean;
-  token: string;
-  expiresAt: number;
-  email: string;
-  firstName: string;
-  lastName: string;
-  emailVerified: boolean;
-};
-
-type AccountAuthInput = {
-  email: string;
-  password: string;
-  firstName?: string;
-  lastName?: string;
-};
-
-type AuthPayload = {
-  token: string;
-  expires_at: string;
-  user: {
-    email: string;
-    first_name: string;
-    last_name: string;
-    is_staff: boolean;
-    email_verified: boolean;
-  };
-};
-
-type ApiErrorPayload = {
-  error?: {
-    message?: string;
-  };
-};
 
 type AccountAuthContextValue = {
   session: AccountSession | null;
   isAuthenticated: boolean;
   isReady: boolean;
   authError: string | null;
-  signIn: (input: AccountAuthInput) => Promise<void>;
-  register: (input: AccountAuthInput) => Promise<void>;
+  signIn: (input: CustomerCredentials) => Promise<void>;
+  register: (input: CustomerCredentials) => Promise<void>;
   signOut: () => Promise<void>;
   requestPasswordReset: (email: string) => Promise<string>;
   confirmPasswordReset: (token: string, password: string) => Promise<string>;
@@ -87,68 +58,6 @@ function readStoredSession(): AccountSession | null {
   }
 }
 
-function toSession(payload: AuthPayload): AccountSession {
-  return {
-    isAuthenticated: true,
-    token: payload.token,
-    expiresAt: new Date(payload.expires_at).getTime(),
-    email: payload.user.email,
-    firstName: payload.user.first_name || "Customer",
-    lastName: payload.user.last_name || "Account",
-    emailVerified: payload.user.email_verified,
-  };
-}
-
-async function postAuth(path: string, body: Record<string, string>) {
-  const response = await fetch(`${API_BASE}${path}`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(body),
-  });
-
-  const payload = (await response.json().catch(() => null)) as AuthPayload | ApiErrorPayload | null;
-
-  if (!response.ok || !payload || "error" in payload) {
-    throw new Error(
-      payload && "error" in payload
-        ? payload.error?.message ?? "Unable to complete account auth."
-        : "Unable to complete account auth.",
-    );
-  }
-
-  return payload as AuthPayload;
-}
-
-async function postAnonymous(path: string, body: Record<string, string>) {
-  const response = await fetch(`${API_BASE}${path}`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(body),
-  });
-
-  const payload = (await response.json().catch(() => null)) as
-    | { message?: string }
-    | ApiErrorPayload
-    | null;
-
-  if (!response.ok) {
-    throw new Error(
-      payload && "error" in payload
-        ? payload.error?.message ?? "Unable to complete this request."
-        : "Unable to complete this request.",
-    );
-  }
-
-  if (payload && "message" in payload && typeof payload.message === "string") {
-    return payload.message;
-  }
-  return "Request completed.";
-}
-
 export function AccountAuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<AccountSession | null>(null);
   const [isReady, setIsReady] = useState(false);
@@ -168,13 +77,9 @@ export function AccountAuthProvider({ children }: { children: ReactNode }) {
       }
 
       try {
-        const response = await fetch(`${API_BASE}/auth/customer/session/`, {
-          headers: {
-            Authorization: `Bearer ${stored.token}`,
-          },
-        });
+        const nextSession = await customerAuth.fetchCustomerSession(stored.token);
 
-        if (!response.ok) {
+        if (!nextSession) {
           window.localStorage.removeItem(STORAGE_KEY);
           if (isActive) {
             setSession(null);
@@ -183,8 +88,6 @@ export function AccountAuthProvider({ children }: { children: ReactNode }) {
           return;
         }
 
-        const payload = (await response.json()) as AuthPayload;
-        const nextSession = toSession(payload);
         window.localStorage.setItem(STORAGE_KEY, JSON.stringify(nextSession));
 
         if (isActive) {
@@ -228,11 +131,7 @@ export function AccountAuthProvider({ children }: { children: ReactNode }) {
       signIn: async (input) => {
         setAuthError(null);
         try {
-          const payload = await postAuth("/auth/customer/login/", {
-            email: input.email.trim(),
-            password: input.password,
-          });
-          setSession(toSession(payload));
+          setSession(await customerAuth.signInCustomer(input));
         } catch (error) {
           setSession(null);
           setAuthError(error instanceof Error ? error.message : "Unable to sign in.");
@@ -242,13 +141,8 @@ export function AccountAuthProvider({ children }: { children: ReactNode }) {
       register: async (input) => {
         setAuthError(null);
         try {
-          const payload = await postAuth("/auth/customer/register/", {
-            email: input.email.trim(),
-            password: input.password,
-            first_name: input.firstName?.trim() || "Customer",
-            last_name: input.lastName?.trim() || "Account",
-          });
-          setSession(toSession(payload));
+          setSession(await customerAuth.registerCustomer(input));
+          track({ name: "sign_up", method: "email" });
         } catch (error) {
           setSession(null);
           setAuthError(error instanceof Error ? error.message : "Unable to register.");
@@ -258,21 +152,14 @@ export function AccountAuthProvider({ children }: { children: ReactNode }) {
       signOut: async () => {
         setAuthError(null);
         if (session?.token) {
-          await fetch(`${API_BASE}/auth/customer/session/`, {
-            method: "DELETE",
-            headers: {
-              Authorization: `Bearer ${session.token}`,
-            },
-          }).catch(() => undefined);
+          await customerAuth.endCustomerSession(session.token);
         }
         setSession(null);
       },
       requestPasswordReset: async (email: string) => {
         setAuthError(null);
         try {
-          return await postAnonymous("/auth/customer/password-reset/request/", {
-            email: email.trim(),
-          });
+          return await customerAuth.requestPasswordReset(email);
         } catch (error) {
           setAuthError(error instanceof Error ? error.message : "Unable to request password reset.");
           throw error;
@@ -281,10 +168,7 @@ export function AccountAuthProvider({ children }: { children: ReactNode }) {
       confirmPasswordReset: async (token: string, password: string) => {
         setAuthError(null);
         try {
-          return await postAnonymous("/auth/customer/password-reset/confirm/", {
-            token: token.trim(),
-            password,
-          });
+          return await customerAuth.confirmPasswordReset(token, password);
         } catch (error) {
           setAuthError(error instanceof Error ? error.message : "Unable to reset password.");
           throw error;
@@ -293,9 +177,7 @@ export function AccountAuthProvider({ children }: { children: ReactNode }) {
       resendEmailVerification: async (email: string) => {
         setAuthError(null);
         try {
-          return await postAnonymous("/auth/customer/email-verification/resend/", {
-            email: email.trim(),
-          });
+          return await customerAuth.resendEmailVerification(email);
         } catch (error) {
           setAuthError(error instanceof Error ? error.message : "Unable to resend verification email.");
           throw error;
@@ -304,9 +186,7 @@ export function AccountAuthProvider({ children }: { children: ReactNode }) {
       confirmEmailVerification: async (token: string) => {
         setAuthError(null);
         try {
-          const message = await postAnonymous("/auth/customer/email-verification/confirm/", {
-            token: token.trim(),
-          });
+          const message = await customerAuth.confirmEmailVerification(token);
           setSession((current) =>
             current
               ? {

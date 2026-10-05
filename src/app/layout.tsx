@@ -1,5 +1,14 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Bebas_Neue, IBM_Plex_Mono, Space_Grotesk } from "next/font/google";
+import { AnalyticsRoot } from "@/core/analytics/analytics-root";
+import {
+  DEFAULT_SHARE_IMAGE,
+  SITE_DESCRIPTION,
+  SITE_INDEXABLE,
+  SITE_NAME,
+  SITE_URL,
+} from "@/core/config/site";
+
 import "./globals.css";
 
 const headingFont = Bebas_Neue({
@@ -20,12 +29,32 @@ const monoFont = IBM_Plex_Mono({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(SITE_URL),
   title: {
-    default: "Sohe's Nation",
-    template: "%s | Sohe's Nation",
+    default: `${SITE_NAME} | Premium Tactical Streetwear`,
+    template: `%s | ${SITE_NAME}`,
   },
-  description:
-    "Premium campaign-led fashion commerce for Sohe's Nation. Built like an army, styled like a headline.",
+  description: SITE_DESCRIPTION,
+  applicationName: SITE_NAME,
+  openGraph: {
+    type: "website",
+    siteName: SITE_NAME,
+    locale: "en",
+    title: `${SITE_NAME} | Premium Tactical Streetwear`,
+    description: SITE_DESCRIPTION,
+    images: [DEFAULT_SHARE_IMAGE],
+  },
+  twitter: {
+    card: "summary_large_image",
+    images: [DEFAULT_SHARE_IMAGE.url],
+  },
+  // Outside production every page is kept out of search.
+  ...(SITE_INDEXABLE ? {} : { robots: { index: false, follow: false } }),
+};
+
+export const viewport: Viewport = {
+  themeColor: "#0B0B0B",
+  colorScheme: "dark",
 };
 
 export default function RootLayout({
@@ -46,6 +75,7 @@ export default function RootLayout({
           <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(214,165,72,0.16),transparent_30%),radial-gradient(circle_at_85%_10%,rgba(244,208,119,0.12),transparent_25%),linear-gradient(180deg,rgba(255,255,255,0.02),transparent_16%)]" />
           {children}
         </div>
+        <AnalyticsRoot />
       </body>
     </html>
   );

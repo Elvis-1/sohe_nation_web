@@ -9,11 +9,13 @@ import {
   getCustomerAccount,
   type CustomerAccountData,
 } from "../../data/services/get-customer-account";
+import { AccountLoadNotice } from "./account-load-notice";
 import { OrdersPageShell } from "./orders-page-shell";
 
 export function AccountOrdersExperience() {
   const { isAuthenticated, session } = useAccountAuth();
   const [account, setAccount] = useState<CustomerAccountData | null>(null);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => {
     let isActive = true;
@@ -45,15 +47,22 @@ export function AccountOrdersExperience() {
     return () => {
       isActive = false;
     };
-  }, [isAuthenticated, session]);
+  }, [isAuthenticated, session, refreshKey]);
 
   return (
     <AccountAccessGate
       title="Sign in to review order history."
-      description="The order-history UI now belongs to the customer-account feature and only opens after backend-backed customer access is granted."
+      description="Sign in to see your orders, follow their progress, and start a return."
     >
       {account ? (
-        <OrdersPageShell account={account} />
+        <>
+          <AccountLoadNotice
+            account={account}
+            sections={["orders"]}
+            onRetry={() => setRefreshKey((key) => key + 1)}
+          />
+          <OrdersPageShell account={account} />
+        </>
       ) : (
         <section className="rounded-[2rem] border border-[var(--color-border-subtle)] bg-[linear-gradient(180deg,rgba(28,26,23,0.98),rgba(10,10,10,0.98))] p-8">
           <p className="font-[family:var(--font-supporting)] text-[10px] uppercase tracking-[0.28em] text-[var(--color-accent-gold-highlight)]">

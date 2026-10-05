@@ -12,10 +12,13 @@ export function CatalogResults({
   products,
   total,
   activeLabel,
+  resetHref = "/products",
 }: {
   products: Product[];
   total: number;
   activeLabel: string;
+  /** Where "Reset" goes: the landing page this list belongs to. */
+  resetHref?: string;
 }) {
   const [activeProduct, setActiveProduct] = useState<Product | null>(null);
   const gridClassName =
@@ -114,13 +117,13 @@ export function CatalogResults({
               Nothing holds this filter line yet.
             </h3>
             <p className="mt-4 max-w-xl text-sm leading-7 text-[var(--color-text-secondary)]">
-              Clear one or two filters and the fixture catalog will widen again. This route is already wired for URL-driven discovery, so later API integration can keep the same search shape.
+              Clear a filter or two to see more of the line.
             </p>
             <Link
-              href="/products"
+              href={resetHref}
               className="mt-6 inline-flex rounded-full border border-white/10 px-4 py-3 font-[family:var(--font-supporting)] text-[10px] uppercase tracking-[0.24em] text-[var(--color-text-primary)] transition hover:border-[var(--color-border-strong)]"
             >
-              Reset Catalog
+              Reset filters
             </Link>
           </div>
         )}

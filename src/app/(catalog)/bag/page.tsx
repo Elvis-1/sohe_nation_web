@@ -1,5 +1,10 @@
+import type { Metadata } from "next";
+
+import { PRIVATE_PAGE_ROBOTS } from "@/core/config/page-metadata";
 import { Container } from "@/core/ui/container";
 import { CartPageShell } from "@/features/cart-and-checkout/presentation/components/cart-page-shell";
+
+export const metadata: Metadata = { title: "Your bag", robots: PRIVATE_PAGE_ROBOTS };
 
 export default function BagPage() {
   return (
@@ -14,8 +19,7 @@ export default function BagPage() {
           <span className="block text-[var(--color-accent-gold-highlight)]">held before checkout.</span>
         </h1>
         <p className="mt-5 max-w-3xl text-base leading-8 text-[var(--color-text-secondary)]">
-          Review the staged look, tune quantities, and keep the transition from product discovery to
-          checkout feeling deliberate and premium.
+          Check your sizes and quantities, then head to checkout.
         </p>
       </section>
 

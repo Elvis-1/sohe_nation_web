@@ -6,6 +6,20 @@ type OrderDetailPageShellProps = {
   order: CustomerOrderDetail;
 };
 
+/** Address lines for display; falls back to the text snapshot for older orders. */
+function formatShippingLines(order: CustomerOrderDetail): string[] {
+  const details = order.shippingDetails;
+  if (!details) return [order.shippingAddress];
+  return [
+    details.recipientName,
+    details.line1,
+    details.line2,
+    [details.city, details.state, details.postalCode].filter(Boolean).join(", "),
+    details.countryCode,
+    details.phone,
+  ].filter(Boolean);
+}
+
 export function OrderDetailPageShell({ order }: OrderDetailPageShellProps) {
   const statusLabel =
     order.status === "fulfilled"
@@ -39,8 +53,8 @@ export function OrderDetailPageShell({ order }: OrderDetailPageShellProps) {
           <p className="font-[family:var(--font-supporting)] text-[10px] uppercase tracking-[0.22em] text-[var(--color-text-muted)]">
             Shipping Address
           </p>
-          <p className="mt-3 text-sm leading-7 text-[var(--color-text-secondary)]">
-            {order.shippingAddress}
+          <p className="mt-3 whitespace-pre-line text-sm leading-7 text-[var(--color-text-secondary)]">
+            {formatShippingLines(order).join("\n")}
           </p>
         </div>
 
@@ -103,10 +117,11 @@ export function OrderDetailPageShell({ order }: OrderDetailPageShellProps) {
           ) : (
             <article className="rounded-[1.5rem] border border-white/8 bg-black/20 p-5">
               <p className="font-[family:var(--font-heading)] text-3xl uppercase leading-none text-[var(--color-text-primary)]">
-                No line details yet.
+                Item details unavailable.
               </p>
               <p className="mt-3 text-sm leading-7 text-[var(--color-text-secondary)]">
-                This order detail is not currently returning line items from the API for this entry.
+                We can&apos;t show the items for this order right now. Contact us with the order number
+                if you need them.
               </p>
             </article>
           )}

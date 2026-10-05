@@ -1,4 +1,5 @@
-export default function Loading() {
+/** Page-level loading skeleton, used by `loading.tsx` on routes that can never 404. */
+export function PageSkeleton() {
   return (
     <main className="min-h-screen bg-[var(--color-surface-base)] px-6 py-20 text-[var(--color-text-primary)]">
       <div className="mx-auto flex max-w-6xl animate-pulse flex-col gap-6">

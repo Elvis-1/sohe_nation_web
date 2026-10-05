@@ -4,6 +4,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
+import { productItem } from "@/core/analytics/items";
+import { track } from "@/core/analytics/track";
 import type { Product } from "@/core/types/commerce";
 import { useCart } from "@/features/cart-and-checkout/presentation/state/cart-provider";
 
@@ -26,6 +28,12 @@ export function ProductPurchasePanel({ product }: { product: Product }) {
       (variant) => variant.color === selectedColor && variant.size === selectedSize,
     ) ?? product.variants[0];
 
+  function trackAddToCart() {
+    if (!activeVariant) return;
+    const item = productItem(product, activeVariant, 1);
+    track({ name: "add_to_cart", currency: activeVariant.price.currency, value: item.price, items: [item] });
+  }
+
   function handleAddToBag() {
     if (!activeVariant) {
       return;
@@ -36,6 +44,7 @@ export function ProductPurchasePanel({ product }: { product: Product }) {
       variantId: activeVariant.id,
       quantity: 1,
     });
+    trackAddToCart();
     setHasAdded(true);
   }
 
@@ -49,6 +58,7 @@ export function ProductPurchasePanel({ product }: { product: Product }) {
       variantId: activeVariant.id,
       quantity: 1,
     });
+    trackAddToCart();
     router.push("/checkout");
   }
 
@@ -176,7 +186,7 @@ export function ProductPurchasePanel({ product }: { product: Product }) {
       {hasAdded ? (
         <div className="mt-4 flex flex-wrap items-center gap-3">
           <p className="text-sm leading-7 text-[var(--color-text-secondary)]">
-            Added to bag. You can keep building the look here or move straight into the staged flow.
+            Added to bag. Keep building the look, or head to your bag to check out.
           </p>
           <Link
             href="/bag"
