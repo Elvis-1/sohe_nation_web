@@ -13,6 +13,7 @@
  */
 
 import type { Product, MediaAsset, ProductVariant, Money } from "@/core/types/commerce";
+import { toReturnRule } from "@/core/utils/return-rule";
 
 // ---------------------------------------------------------------------------
 // Raw API shapes (snake_case from Django/DRF)
@@ -71,6 +72,8 @@ export type ApiProduct = {
     max: ApiMoney;
   } | null;
   shipping?: ApiMoney | null;
+  return_policy?: string;
+  return_window_days?: number | null;
   variants: ApiVariant[];
   narrative?: ApiNarrative | null;
   seo_title?: string;
@@ -151,6 +154,7 @@ export function mapApiProductToStorefront(api: ApiProduct): Product {
     media: api.media.map(mapMedia),
     priceRange,
     shippingCost: api.shipping ? mapMoney(api.shipping) : fallbackMoney,
+    returnRule: toReturnRule(api.return_policy, api.return_window_days),
     variants: api.variants.map(mapVariant),
     ...(api.seo_title !== undefined
       ? {

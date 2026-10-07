@@ -6,14 +6,22 @@ import { useState } from "react";
 
 import { productItem } from "@/core/analytics/items";
 import { track } from "@/core/analytics/track";
-import type { Product } from "@/core/types/commerce";
+import type { Product, StoreReturnRules } from "@/core/types/commerce";
+import { ReturnNotice } from "@/core/ui/return-notice";
+import { describeReturnRule } from "@/core/utils/return-rule";
 import { useCart } from "@/features/cart-and-checkout/presentation/state/cart-provider";
 
 function uniqueValues(values: string[]) {
   return [...new Set(values)];
 }
 
-export function ProductPurchasePanel({ product }: { product: Product }) {
+export function ProductPurchasePanel({
+  product,
+  returnRules,
+}: {
+  product: Product;
+  returnRules: StoreReturnRules;
+}) {
   const colors = uniqueValues(product.variants.map((variant) => variant.color));
   const sizes = uniqueValues(product.variants.map((variant) => variant.size));
 
@@ -181,6 +189,19 @@ export function ProductPurchasePanel({ product }: { product: Product }) {
         >
           Buy Through Checkout
         </button>
+      </div>
+
+      <div className="mt-5 rounded-[1rem] border border-white/10 bg-black/20 px-4 py-3">
+        <p className="font-[family:var(--font-supporting)] text-[10px] uppercase tracking-[0.22em] text-[var(--color-text-muted)]">
+          Returns
+        </p>
+        <ReturnNotice notice={describeReturnRule(product.returnRule, returnRules)} className="mt-1 text-sm" />
+        <Link
+          href="/returns"
+          className="mt-1 inline-block text-xs text-[var(--color-accent-gold-highlight)] underline-offset-4 hover:underline"
+        >
+          Returns policy
+        </Link>
       </div>
 
       {hasAdded ? (

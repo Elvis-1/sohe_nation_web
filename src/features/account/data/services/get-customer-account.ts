@@ -1,5 +1,12 @@
-import type { CustomerProfile, Money, OrderSummary } from "@/core/types/commerce";
+import type {
+  CustomerProfile,
+  Money,
+  OrderSummary,
+  ProductReturnRule,
+  StoreReturnRules,
+} from "@/core/types/commerce";
 import { ApiError } from "@/core/api/http-client";
+import { DEFAULT_STORE_RETURN_RULES, toReturnRule, toStoreReturnRules } from "@/core/utils/return-rule";
 import { fetchAllPages, pageQuery } from "@/core/api/paginate";
 import { resolveApiBaseUrl } from "@/core/api/resolve-api-base-url";
 import {
@@ -10,6 +17,24 @@ import {
 
 const API_BASE = resolveApiBaseUrl();
 
+export type ReturnReasonCode = "wrong_size" | "not_as_described" | "faulty" | "changed_mind" | "other";
+
+export const RETURN_REASONS: Array<{ code: ReturnReasonCode; label: string }> = [
+  { code: "wrong_size", label: "Wrong size or fit" },
+  { code: "not_as_described", label: "Not as described" },
+  { code: "faulty", label: "Faulty or damaged" },
+  { code: "changed_mind", label: "Changed my mind" },
+  { code: "other", label: "Other" },
+];
+
+export type CustomerReturnLine = {
+  orderLineId: string;
+  title: string;
+  variantLabel: string;
+  quantity: number;
+  reasonLabel: string;
+};
+
 export type CustomerReturn = {
   id: string;
   orderId: string;
@@ -18,14 +43,28 @@ export type CustomerReturn = {
   itemSummary: string;
   customerNote: string;
   requestedAt: string;
+  /** Empty for returns made before item-level returns; show `itemSummary` then. */
+  lines: CustomerReturnLine[];
 };
 
 export type CreateReturnPayload = {
   order_id: string;
-  item_summary: string;
-  reason: string;
+  lines: Array<{ order_line_id: string; quantity: number; reason_code: ReturnReasonCode }>;
   customer_note?: string;
 };
+
+/** A refused return request; `lineErrors` maps order line ids to why that item was refused. */
+export class ReturnRequestError extends ApiError {
+  constructor(
+    status: number,
+    code: string,
+    message: string,
+    public readonly lineErrors: Record<string, string>,
+  ) {
+    super(status, code, message);
+    this.name = "ReturnRequestError";
+  }
+}
 
 /** Account sections whose API read failed; the matching lists are empty, not "none". */
 export type AccountSection = "orders" | "returns" | "addresses";
@@ -39,6 +78,7 @@ export type CustomerAccountData = {
   returns: CustomerReturn[];
   storeName: string;
   supportEmail: string;
+  returnRules: StoreReturnRules;
   loadErrors: AccountSection[];
 };
 
@@ -49,12 +89,25 @@ export type AccountApiAuth = {
   lastName?: string;
 };
 
+/** Whether an order line can be returned now (from the API; it re-checks on submit). */
+export type OrderLineReturnEligibility = {
+  eligible: boolean;
+  /** Only as "faulty or damaged": final sale, or the return window has closed. */
+  faultyOnly: boolean;
+  remainingQuantity: number;
+  returnableUntil: string | null;
+  message: string;
+};
+
 export type CustomerOrderLine = {
   id: string;
   title: string;
   variantLabel: string;
   quantity: number;
   unitPrice: Money;
+  /** The rule the item was bought under. */
+  returnRule: ProductReturnRule;
+  returnEligibility: OrderLineReturnEligibility | null;
 };
 
 /** Address snapshotted onto the order at checkout. */
@@ -78,6 +131,8 @@ export type CustomerOrderDetail = {
   shippingAddress: string;
   /** Null for orders placed before structured snapshots; show `shippingAddress` then. */
   shippingDetails: OrderShippingDetails | null;
+  /** Something in the order can be returned now, for any reason or as faulty. */
+  canStartReturn: boolean;
   lines: CustomerOrderLine[];
 };
 
@@ -89,6 +144,13 @@ type ApiAccountReturn = {
   item_summary: string;
   customer_note: string;
   requested_at: string;
+  lines?: Array<{
+    order_line_id: string;
+    title: string;
+    variant_label: string;
+    quantity: number;
+    reason_label: string;
+  }>;
 };
 
 type ApiPaginatedReturns = {
@@ -99,6 +161,7 @@ type ApiPaginatedReturns = {
 type ApiStorefrontSettings = {
   store_name: string;
   support_email: string;
+  returns?: { return_window_days?: number; final_sale_regions?: string[] };
 };
 
 function mapApiReturnToCustomerReturn(api: ApiAccountReturn): CustomerReturn {
@@ -110,6 +173,13 @@ function mapApiReturnToCustomerReturn(api: ApiAccountReturn): CustomerReturn {
     itemSummary: api.item_summary,
     customerNote: api.customer_note,
     requestedAt: api.requested_at.slice(0, 10),
+    lines: (api.lines ?? []).map((line) => ({
+      orderLineId: line.order_line_id,
+      title: line.title,
+      variantLabel: line.variant_label,
+      quantity: line.quantity,
+      reasonLabel: line.reason_label,
+    })),
   };
 }
 
@@ -131,16 +201,20 @@ async function fetchApiReturns(auth?: AccountApiAuth): Promise<CustomerReturn[]>
   return returns.map(mapApiReturnToCustomerReturn);
 }
 
-async function fetchStorefrontSettings(): Promise<{
+type AccountStoreSettings = {
   storeName: string;
   supportEmail: string;
-}> {
-  if (!API_BASE) {
-    return {
-      storeName: "Sohe's Nation",
-      supportEmail: "support@sohenation.com",
-    };
-  }
+  returnRules: StoreReturnRules;
+};
+
+const DEFAULT_ACCOUNT_STORE_SETTINGS: AccountStoreSettings = {
+  storeName: "Sohe's Nation",
+  supportEmail: "support@sohenation.com",
+  returnRules: DEFAULT_STORE_RETURN_RULES,
+};
+
+async function fetchStorefrontSettings(): Promise<AccountStoreSettings> {
+  if (!API_BASE) return DEFAULT_ACCOUNT_STORE_SETTINGS;
 
   try {
     const response = await fetch(`${API_BASE}/settings/storefront/`, {
@@ -151,23 +225,16 @@ async function fetchStorefrontSettings(): Promise<{
       },
     });
 
-    if (!response.ok) {
-      return {
-        storeName: "Sohe's Nation",
-        supportEmail: "support@sohenation.com",
-      };
-    }
+    if (!response.ok) return DEFAULT_ACCOUNT_STORE_SETTINGS;
 
     const payload = (await response.json()) as ApiStorefrontSettings;
     return {
-      storeName: payload.store_name || "Sohe's Nation",
-      supportEmail: payload.support_email || "support@sohenation.com",
+      storeName: payload.store_name || DEFAULT_ACCOUNT_STORE_SETTINGS.storeName,
+      supportEmail: payload.support_email || DEFAULT_ACCOUNT_STORE_SETTINGS.supportEmail,
+      returnRules: toStoreReturnRules(payload.returns),
     };
   } catch {
-    return {
-      storeName: "Sohe's Nation",
-      supportEmail: "support@sohenation.com",
-    };
+    return DEFAULT_ACCOUNT_STORE_SETTINGS;
   }
 }
 
@@ -186,11 +253,16 @@ export async function submitReturnRequest(
   });
 
   if (!response.ok) {
-    type ErrorBody = { error?: { code?: string; message?: string } };
+    type ErrorBody = {
+      error?: { code?: string; message?: string; lines?: Array<{ order_line_id: string; message: string }> };
+    };
     const body = await response.json().catch(() => ({})) as ErrorBody;
     const code = body?.error?.code ?? `http_${response.status}`;
     const message = body?.error?.message ?? "Request failed.";
-    throw new ApiError(response.status, code, message);
+    const lineErrors = Object.fromEntries(
+      (body?.error?.lines ?? []).map((line) => [line.order_line_id, line.message]),
+    );
+    throw new ReturnRequestError(response.status, code, message, lineErrors);
   }
 
   const data = (await response.json()) as ApiAccountReturn;
@@ -210,6 +282,7 @@ type ApiAccountOrder = {
   status: OrderSummary["status"];
   total: ApiMoney;
   is_return_eligible?: boolean;
+  can_report_faulty?: boolean;
 };
 
 type ApiPaginatedOrders = {
@@ -223,6 +296,15 @@ type ApiAccountOrderLine = {
   variant_label: string;
   quantity: number;
   unit_price: ApiMoney;
+  return_policy?: string;
+  return_window_days?: number | null;
+  return_eligibility?: {
+    eligible: boolean;
+    faulty_only: boolean;
+    remaining_quantity: number;
+    returnable_until: string | null;
+    message: string;
+  } | null;
 };
 
 type ApiShippingDetails = {
@@ -254,6 +336,7 @@ function mapApiOrderToSummary(order: ApiAccountOrder): OrderSummary {
       formatted: order.total.formatted,
     },
     isReturnEligible: order.is_return_eligible ?? false,
+    canReportFaulty: order.can_report_faulty ?? false,
   };
 }
 
@@ -281,6 +364,7 @@ function mapApiOrderToDetail(order: ApiAccountOrderDetail): CustomerOrderDetail 
           countryCode: order.shipping_details.country_code,
         }
       : null,
+    canStartReturn: Boolean(order.is_return_eligible || order.can_report_faulty),
     lines: (order.lines ?? []).map((line) => ({
       id: line.id,
       title: line.title,
@@ -291,6 +375,16 @@ function mapApiOrderToDetail(order: ApiAccountOrderDetail): CustomerOrderDetail 
         currency: line.unit_price.currency as Money["currency"],
         formatted: line.unit_price.formatted,
       },
+      returnRule: toReturnRule(line.return_policy, line.return_window_days),
+      returnEligibility: line.return_eligibility
+        ? {
+            eligible: line.return_eligibility.eligible,
+            faultyOnly: line.return_eligibility.faulty_only,
+            remainingQuantity: line.return_eligibility.remaining_quantity,
+            returnableUntil: line.return_eligibility.returnable_until,
+            message: line.return_eligibility.message,
+          }
+        : null,
     })),
   };
 }
@@ -380,6 +474,7 @@ export async function getCustomerAccount(auth?: AccountApiAuth): Promise<Custome
     returns,
     storeName: settings.storeName,
     supportEmail: settings.supportEmail,
+    returnRules: settings.returnRules,
     loadErrors,
   };
 }

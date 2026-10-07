@@ -4,6 +4,7 @@ import type { Money, Product } from "@/core/types/commerce";
 import { cachedContentRequest } from "@/core/api/cache";
 import { HttpError, httpClient } from "@/core/api/http-client";
 import { resolveApiBaseUrl } from "@/core/api/resolve-api-base-url";
+import { toReturnRule } from "@/core/utils/return-rule";
 
 import type { LookbookStory } from "@/features/editorial/domain/entities/lookbook-story";
 
@@ -37,6 +38,8 @@ type ApiProduct = {
     min: ApiMoney;
     max: ApiMoney;
   };
+  return_policy?: string;
+  return_window_days?: number | null;
   variants: Array<{
     id: string;
     sku: string;
@@ -113,6 +116,7 @@ function mapProduct(api: ApiProduct): Product {
       min,
       max,
     },
+    returnRule: toReturnRule(api.return_policy, api.return_window_days),
     variants: api.variants.map((variant) => ({
       id: variant.id,
       sku: variant.sku,

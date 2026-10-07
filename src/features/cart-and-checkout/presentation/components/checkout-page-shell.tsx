@@ -5,7 +5,9 @@ import { useEffect, useRef, useState } from "react";
 
 import { cartLineItem, itemsValue } from "@/core/analytics/items";
 import { track } from "@/core/analytics/track";
-import type { CheckoutProvider, RegionCode } from "@/core/types/commerce";
+import type { CheckoutProvider, RegionCode, StoreReturnRules } from "@/core/types/commerce";
+import { ReturnNotice } from "@/core/ui/return-notice";
+import { describeReturnRule, type ReturnNotice as ReturnNoticeValue } from "@/core/utils/return-rule";
 import { useAccountAuth } from "@/features/account-auth/presentation/state/account-auth-provider";
 import {
   createCustomerAddress,
@@ -79,7 +81,7 @@ function readStoredCheckoutAddress(): ShippingAddressState | null {
   }
 }
 
-export function CheckoutPageShell() {
+export function CheckoutPageShell({ returnRules }: { returnRules: StoreReturnRules }) {
   const { cart, isHydrated } = useCart();
   const { isAuthenticated, session } = useAccountAuth();
   // Flutterwave is the only provider the API accepts until PayPal credentials exist (api/PLAN.md Slice 9).
@@ -93,12 +95,20 @@ export function CheckoutPageShell() {
   );
   const { quote, quoteError, isQuoteReady, summary } = useCheckoutQuote(cart, isHydrated);
   const selectedProvider = providerLabels[provider];
-  const reviewLines = quote
+  // Final sale depends on where the order is delivered, so notices follow the chosen country.
+  const reviewLines: Array<{
+    id: string;
+    title: string;
+    quantity: number;
+    lineTotal: { formatted: string };
+    returnNotice?: ReturnNoticeValue;
+  }> = quote
     ? quote.lines.map((line) => ({
         id: `${line.productId}:${line.variantId}`,
         title: line.title,
         quantity: line.quantity,
         lineTotal: line.lineTotal,
+        returnNotice: describeReturnRule(line.returnRule, returnRules, shippingAddress.countryCode),
       }))
     : cart.lines;
 
@@ -500,12 +510,15 @@ export function CheckoutPageShell() {
             {reviewLines.map((line) => (
               <div
                 key={line.id}
-                className="flex items-center justify-between rounded-[1rem] border border-white/8 bg-black/20 px-4 py-3 text-sm text-[var(--color-text-secondary)]"
+                className="rounded-[1rem] border border-white/8 bg-black/20 px-4 py-3 text-sm text-[var(--color-text-secondary)]"
               >
-                <span>
-                  {line.title} x {line.quantity}
-                </span>
-                <span>{line.lineTotal.formatted}</span>
+                <div className="flex items-center justify-between gap-3">
+                  <span>
+                    {line.title} x {line.quantity}
+                  </span>
+                  <span>{line.lineTotal.formatted}</span>
+                </div>
+                {line.returnNotice ? <ReturnNotice notice={line.returnNotice} className="mt-1" /> : null}
               </div>
             ))}
           </div>

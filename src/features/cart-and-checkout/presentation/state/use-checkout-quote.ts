@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 
-import type { Cart, CartSummary, Money } from "@/core/types/commerce";
+import type { Cart, CartSummary, Money, ProductReturnRule } from "@/core/types/commerce";
 import {
   getCheckoutQuote,
   type CheckoutQuote,
@@ -22,6 +22,8 @@ export type CheckoutQuoteState = {
   summary: CartSummary;
   /** Server-priced line money keyed by variant id, when available. */
   priceForVariant: (variantId: string) => { unitPrice: Money; lineTotal: Money } | null;
+  /** The product's return rule from the quote, when priced. */
+  returnRuleForVariant: (variantId: string) => ProductReturnRule | null;
 };
 
 /**
@@ -70,5 +72,7 @@ export function useCheckoutQuote(cart: Cart, isHydrated: boolean): CheckoutQuote
       const line = quote?.lines.find((candidate) => candidate.variantId === variantId);
       return line ? { unitPrice: line.unitPrice, lineTotal: line.lineTotal } : null;
     },
+    returnRuleForVariant: (variantId) =>
+      quote?.lines.find((candidate) => candidate.variantId === variantId)?.returnRule ?? null,
   };
 }
