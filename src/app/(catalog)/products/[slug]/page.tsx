@@ -51,7 +51,7 @@ export default async function ProductPage({
   return (
     <Container className="py-10 md:py-14">
       <JsonLd
-        data={[productGroupJsonLd(detail.product), breadcrumbJsonLd(productCrumbs(detail.product))]}
+        data={[productGroupJsonLd(detail.product, settings.returns), breadcrumbJsonLd(productCrumbs(detail.product))]}
       />
       <ViewItemTracker product={detail.product} />
       <div className="grid gap-8 xl:grid-cols-[1.05fr_0.95fr]">

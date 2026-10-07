@@ -7,15 +7,12 @@
  * `[Owner to confirm]` items on the shipping and returns pages).
  */
 
-import type { Product } from "@/core/types/commerce";
+import type { Product, RegionCode, StoreReturnRules } from "@/core/types/commerce";
 import { absoluteUrl, SITE_DESCRIPTION, SITE_NAME, SITE_URL } from "@/core/config/site";
 
 type JsonLd = Record<string, unknown>;
 
 export type Crumb = { name: string; path: string };
-
-// Return window enforced by the API for delivered orders (Slice 3).
-const RETURN_WINDOW_DAYS = 14;
 
 const ORGANIZATION_ID = `${SITE_URL}/#organization`;
 const WEBSITE_ID = `${SITE_URL}/#website`;
@@ -92,10 +89,47 @@ function price(amount: number): string {
 }
 
 /**
+ * The product's return policy per shipping country, matching what checkout saves on the order
+ * (Slice 14): final sale → returns not permitted where final sale applies; otherwise the
+ * product's custom window or the store window. Countries sharing a policy are grouped.
+ */
+function returnPolicies(product: Product, countries: string[], store: StoreReturnRules): JsonLd[] {
+  const daysFor = (country: string): number | null => {
+    const { policy, windowDays } = product.returnRule;
+    if (policy === "final_sale" && store.finalSaleRegions.includes(country as RegionCode)) return null;
+    if (policy === "custom" && windowDays) return windowDays;
+    return store.returnWindowDays;
+  };
+
+  const byDays = new Map<number | null, string[]>();
+  for (const country of countries) {
+    const days = daysFor(country);
+    byDays.set(days, [...(byDays.get(days) ?? []), country]);
+  }
+
+  return [...byDays].map(([days, applicableCountry]) =>
+    days === null
+      ? {
+          "@type": "MerchantReturnPolicy",
+          applicableCountry,
+          returnPolicyCategory: "https://schema.org/MerchantReturnNotPermitted",
+          merchantReturnLink: absoluteUrl("/returns"),
+        }
+      : {
+          "@type": "MerchantReturnPolicy",
+          applicableCountry,
+          returnPolicyCategory: "https://schema.org/MerchantReturnFiniteReturnWindow",
+          merchantReturnDays: days,
+          merchantReturnLink: absoluteUrl("/returns"),
+        },
+  );
+}
+
+/**
  * One `ProductGroup` with a `Product` + `Offer` per variant (size × colour), so every price
  * and stock state the page can show is described exactly.
  */
-export function productGroupJsonLd(product: Product): JsonLd {
+export function productGroupJsonLd(product: Product, returnRules: StoreReturnRules): JsonLd {
   const url = absoluteUrl(`/products/${product.slug}`);
   const images = productImages(product);
   const countries = shippingCountries(product);
@@ -117,15 +151,8 @@ export function productGroupJsonLd(product: Product): JsonLd {
         }))
       : undefined;
 
-  const returnPolicy = countries.length
-    ? {
-        "@type": "MerchantReturnPolicy",
-        applicableCountry: countries,
-        returnPolicyCategory: "https://schema.org/MerchantReturnFiniteReturnWindow",
-        merchantReturnDays: RETURN_WINDOW_DAYS,
-        merchantReturnLink: absoluteUrl("/returns"),
-      }
-    : undefined;
+  const policies = returnPolicies(product, countries, returnRules);
+  const returnPolicy = policies.length === 0 ? undefined : policies.length === 1 ? policies[0] : policies;
 
   return {
     "@context": "https://schema.org",
