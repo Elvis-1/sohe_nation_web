@@ -26,7 +26,7 @@ export const AUDIENCE_LANDINGS: Record<"men" | "women", CatalogLanding> = {
       "Field-ready outerwear, tracksuits, tops, and separates cut for men, together with the unisex pieces from the current drop.",
     metaTitle: "Men's Tactical Streetwear",
     metaDescription:
-      "Shop men's tactical streetwear from Sohe's Nation: utility outerwear, tracksuits, tops, bottoms, and headwear from the current drop.",
+      "Shop men's tactical streetwear from Sohe Nation: utility outerwear, tracksuits, tops, bottoms, and headwear from the current drop.",
     fixed: { gender: "men" },
   },
   women: {
@@ -37,7 +37,7 @@ export const AUDIENCE_LANDINGS: Record<"men" | "women", CatalogLanding> = {
       "Field-ready outerwear, tracksuits, tops, and separates cut for women, together with the unisex pieces from the current drop.",
     metaTitle: "Women's Tactical Streetwear",
     metaDescription:
-      "Shop women's tactical streetwear from Sohe's Nation: utility outerwear, tracksuits, tops, bottoms, and headwear from the current drop.",
+      "Shop women's tactical streetwear from Sohe Nation: utility outerwear, tracksuits, tops, bottoms, and headwear from the current drop.",
     fixed: { gender: "women" },
   },
 };
@@ -62,7 +62,7 @@ const collectionCopy: Record<string, Omit<CatalogLanding, "path" | "fixed">> = {
     intro: "Matching tracksuits and sets with a disciplined cut, built to move from training to the street.",
     metaTitle: "Tracksuits",
     metaDescription:
-      "Shop Sohe's Nation tracksuits: matching sets with a disciplined cut for men and women, from training to the street.",
+      "Shop Sohe Nation tracksuits: matching sets with a disciplined cut for men and women, from training to the street.",
   },
   outerwear: {
     eyebrow: "Collection",
@@ -70,28 +70,28 @@ const collectionCopy: Record<string, Omit<CatalogLanding, "path" | "fixed">> = {
     intro: "Utility jackets and shells with tactical detailing, made to be worn hard.",
     metaTitle: "Outerwear",
     metaDescription:
-      "Shop Sohe's Nation outerwear: utility jackets and shells with tactical detailing for men and women.",
+      "Shop Sohe Nation outerwear: utility jackets and shells with tactical detailing for men and women.",
   },
   tops: {
     eyebrow: "Collection",
     heading: "Tops.",
     intro: "Tees, knits, and layering tops that anchor the uniform.",
     metaTitle: "Tops",
-    metaDescription: "Shop Sohe's Nation tops: tees, knits, and layering pieces that anchor the uniform.",
+    metaDescription: "Shop Sohe Nation tops: tees, knits, and layering pieces that anchor the uniform.",
   },
   bottoms: {
     eyebrow: "Collection",
     heading: "Bottoms.",
     intro: "Utility and tailored trousers cut for movement.",
     metaTitle: "Bottoms",
-    metaDescription: "Shop Sohe's Nation bottoms: utility and tailored trousers cut for movement.",
+    metaDescription: "Shop Sohe Nation bottoms: utility and tailored trousers cut for movement.",
   },
   headwear: {
     eyebrow: "Collection",
     heading: "Headwear.",
     intro: "Caps and headwear that finish the uniform.",
     metaTitle: "Headwear",
-    metaDescription: "Shop Sohe's Nation headwear: caps that finish the uniform.",
+    metaDescription: "Shop Sohe Nation headwear: caps that finish the uniform.",
   },
 };
 
@@ -110,7 +110,7 @@ export const ALL_PRODUCTS_LANDING: CatalogLanding = {
     "Move through the current selection with a sharper lens. Start with the silhouettes that fit the moment, then narrow by category, size, and price.",
   metaTitle: "Shop All",
   metaDescription:
-    "Shop the full Sohe's Nation line: tactical outerwear, tracksuits, tops, bottoms, and headwear for men and women.",
+    "Shop the full Sohe Nation line: tactical outerwear, tracksuits, tops, bottoms, and headwear for men and women.",
   fixed: {},
 };
 

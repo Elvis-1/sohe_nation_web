@@ -49,7 +49,7 @@ export const footerNavigation: FooterNavigationGroup[] = [
   },
   {
     title: "About",
-    links: [{ label: "About Sohe's Nation", href: "/about" }],
+    links: [{ label: "About Sohe Nation", href: "/about" }],
   },
   {
     title: "Legal",

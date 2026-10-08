@@ -29,7 +29,7 @@ export function organizationJsonLd({
     "@type": "Organization",
     "@id": ORGANIZATION_ID,
     name: SITE_NAME,
-    alternateName: "SOHE'S NATION",
+    alternateName: "SOHE NATION",
     url: `${SITE_URL}/`,
     logo: absoluteUrl("/icon.png"),
     description: SITE_DESCRIPTION,

@@ -208,7 +208,7 @@ type AccountStoreSettings = {
 };
 
 const DEFAULT_ACCOUNT_STORE_SETTINGS: AccountStoreSettings = {
-  storeName: "Sohe's Nation",
+  storeName: "Sohe Nation",
   supportEmail: "support@sohenation.com",
   returnRules: DEFAULT_STORE_RETURN_RULES,
 };

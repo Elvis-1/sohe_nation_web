@@ -27,8 +27,9 @@ export async function GET() {
             "radial-gradient(circle at 50% 38%, rgba(214,165,72,0.28), rgba(11,11,11,0) 58%)",
         }}
       >
+        {/* public/brand-logo.png is 640×419; keep that ratio. */}
         {/* eslint-disable-next-line @next/next/no-img-element -- rendered by next/og, not the browser */}
-        <img src={`data:image/png;base64,${logo}`} width={560} height={416} alt="" />
+        <img src={`data:image/png;base64,${logo}`} width={580} height={380} alt="" />
         <div
           style={{
             marginTop: 28,
