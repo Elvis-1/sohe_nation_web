@@ -126,10 +126,7 @@ export function ReturnsPageShell({ account, auth, initialOrderId, onReturnCreate
       if (err instanceof ReturnRequestError && err.code === "return_line_not_eligible") {
         setLineErrors(err.lineErrors);
         setFormError("Some items can't be returned as chosen. See the notes on each item.");
-      } else if (
-        err instanceof ReturnRequestError &&
-        (err.code === "duplicate_return_request" || err.code === "order_not_eligible_for_return")
-      ) {
+      } else if (err instanceof ReturnRequestError && err.code === "order_not_eligible_for_return") {
         setFormError(err.message);
       } else if (err instanceof ReturnRequestError && err.status === 400) {
         setFormError("Check the items, quantities, and reasons, then try again.");
