@@ -64,7 +64,7 @@ export function NewsletterSignup() {
       </div>
 
       <p className="mt-4 max-w-md text-sm leading-7 text-[var(--color-text-secondary)]">
-        Release notes, lookbook previews, and first-call access for the next Sohe&apos;s Nation drop.
+        Release notes, lookbook previews, and first-call access for the next Sohe Nation drop.
       </p>
 
       <div className="mt-6 grid gap-3 md:grid-cols-[1fr_auto]">

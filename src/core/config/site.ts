@@ -2,10 +2,10 @@
  * Public site identity used for canonical URLs, sitemap, robots, and share metadata.
  */
 
-export const SITE_NAME = "Sohe's Nation";
+export const SITE_NAME = "Sohe Nation";
 export const SITE_TAGLINE = "Built Like An Army";
 export const SITE_DESCRIPTION =
-  "Premium tactical streetwear from Sohe's Nation: field-ready outerwear, tracksuits, and separates, released in campaign-led drops.";
+  "Premium tactical streetwear from Sohe Nation: field-ready outerwear, tracksuits, and separates, released in campaign-led drops.";
 
 // Canonical origin (production: https://sohenation.com). Every canonical URL, sitemap entry,
 // and share link is built from this, whatever host served the request.

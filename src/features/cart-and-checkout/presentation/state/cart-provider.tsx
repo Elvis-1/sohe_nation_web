@@ -93,6 +93,13 @@ function writeLines(update: (current: StoredCartLine[]) => StoredCartLine[]) {
   cartListeners.forEach((listener) => listener());
 }
 
+/** Removes paid-for lines once the API confirms payment; anything added since stays. */
+export function removePurchasedVariants(variantIds: string[]) {
+  const paid = new Set(variantIds);
+  if (!paid.size) return;
+  writeLines((current) => current.filter((line) => !paid.has(line.variantId)));
+}
+
 const subscribeNever = () => () => undefined;
 
 export function CartProvider({ children }: { children: ReactNode }) {

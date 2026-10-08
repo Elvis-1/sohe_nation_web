@@ -8,6 +8,7 @@ import { cartLineItem, itemsValue } from "@/core/analytics/items";
 import { trackPurchaseOnce } from "@/core/analytics/track";
 import { useAccountAuth } from "@/features/account-auth/presentation/state/account-auth-provider";
 import { getCheckoutSession } from "@/features/cart-and-checkout/data/services/checkout-sessions";
+import { removePurchasedVariants } from "@/features/cart-and-checkout/presentation/state/cart-provider";
 
 type ViewState =
   | { mode: "loading" }
@@ -52,6 +53,8 @@ export function CheckoutReturnPageShell() {
               items,
             });
           }
+          // The bag kept the paid items until now, so a failed payment can be retried.
+          removePurchasedVariants((checkoutSession.lines ?? []).map((line) => line.variantId));
           setState({ mode: "success", message: "Payment authorized successfully." });
           return;
         }

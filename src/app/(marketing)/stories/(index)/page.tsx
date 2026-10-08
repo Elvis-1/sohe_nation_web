@@ -8,7 +8,7 @@ import { getLookbookStories } from "@/features/editorial/data/services/get-lookb
 export const metadata: Metadata = buildPageMetadata({
   title: "Stories and Lookbooks",
   description:
-    "Campaign stories and lookbooks from Sohe's Nation: the drops, the styling, and the pieces behind each release.",
+    "Campaign stories and lookbooks from Sohe Nation: the drops, the styling, and the pieces behind each release.",
   path: "/stories",
 });
 

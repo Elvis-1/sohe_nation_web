@@ -35,7 +35,7 @@ export async function getHomepageContent() {
       title: "Built Like An Army",
       statement: "Street discipline. Runway presence.",
       description:
-        "A sharp opening release from Sohe's Nation, where tactical cuts, layered silhouettes, and runway composure meet in one disciplined line.",
+        "A sharp opening release from Sohe Nation, where tactical cuts, layered silhouettes, and runway composure meet in one disciplined line.",
       primaryCta: { label: "Shop The Drop", href: "/products" },
       secondaryCta: { label: "Enter The Story", href: "/stories/built-like-an-army" },
       campaignStats: [
@@ -48,7 +48,7 @@ export async function getHomepageContent() {
         type: (heroMedia?.kind ?? "video") as "image" | "video",
         url: heroMedia?.url ?? "/hero-runway.mp4",
         posterUrl: heroMedia?.poster_url ?? "/jacket_with_pant.jpeg",
-        alt: heroMedia?.alt ?? "Sohe's Nation runway campaign video",
+        alt: heroMedia?.alt ?? "Sohe Nation runway campaign video",
       },
     },
     featuredProducts: dto.featured_drop?.linked_products.map(mapApiProductToStorefront) ?? [],

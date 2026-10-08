@@ -40,9 +40,9 @@ export function SiteHeader({
         }`}
       >
         {item.label}
-        {item.label === "Bag" ? (
+        {item.label === "Bag" && itemCount > 0 ? (
           <span
-            suppressHydrationWarning
+            aria-label={`${itemCount} ${itemCount === 1 ? "item" : "items"} in bag`}
             className="ml-2 rounded-full border border-white/10 px-2 py-0.5 text-[9px] leading-none text-[var(--color-accent-gold-highlight)]"
           >
             {itemCount}
@@ -58,8 +58,8 @@ export function SiteHeader({
           <Link href="/" className="flex min-w-0 items-center gap-3">
             <div className="relative h-11 w-11 shrink-0 overflow-hidden rounded-full border border-[var(--color-border-strong)] bg-[var(--color-surface-panel)]">
               <Image
-                src="/sohe-icon.jpeg"
-                alt="Sohe's Nation icon"
+                src="/sohe-nation-icon.jpeg"
+                alt="Sohe Nation icon"
                 fill
                 sizes="44px"
                 className="object-cover"
@@ -67,7 +67,7 @@ export function SiteHeader({
             </div>
             <div className="min-w-0 leading-none">
               <p className="truncate font-[family:var(--font-heading)] text-2xl uppercase tracking-[0.08em] text-[var(--color-text-primary)] sm:text-3xl">
-                Sohe&apos;s Nation
+                Sohe Nation
               </p>
               <p className="font-[family:var(--font-supporting)] text-[10px] uppercase tracking-[0.32em] text-[var(--color-text-muted)]">
                 Built Like An Army

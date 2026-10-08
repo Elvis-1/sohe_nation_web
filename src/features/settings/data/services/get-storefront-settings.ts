@@ -21,7 +21,7 @@ export type StorefrontSettings = {
 };
 
 const DEFAULT_STOREFRONT_SETTINGS: StorefrontSettings = {
-  storeName: "Sohe's Nation",
+  storeName: "Sohe Nation",
   supportEmail: "support@sohenation.com",
   socialLinks: [],
   returns: DEFAULT_STORE_RETURN_RULES,
