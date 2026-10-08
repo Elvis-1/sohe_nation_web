@@ -1,6 +1,10 @@
 "use client";
 
 import Link from "next/link";
+
+import type { StoreReturnRules } from "@/core/types/commerce";
+import { ReturnNotice } from "@/core/ui/return-notice";
+import { describeReturnRule } from "@/core/utils/return-rule";
 import { useCart } from "../state/cart-provider";
 import { useCheckoutQuote } from "../state/use-checkout-quote";
 import { useRecommendedProducts } from "../state/use-recommended-products";
@@ -21,9 +25,9 @@ function renderMoneyValue(formatted: string) {
   );
 }
 
-export function CartPageShell() {
+export function CartPageShell({ returnRules }: { returnRules: StoreReturnRules }) {
   const { cart, itemCount, isHydrated, updateQuantity, removeItem } = useCart();
-  const { quote, quoteError, summary, priceForVariant } = useCheckoutQuote(cart, isHydrated);
+  const { quote, quoteError, summary, priceForVariant, returnRuleForVariant } = useCheckoutQuote(cart, isHydrated);
   const largestLine = cart.lines[0];
   const recommendedProducts = useRecommendedProducts(cart.lines.map((line) => line.productId));
 
@@ -157,6 +161,7 @@ export function CartPageShell() {
         <div className="relative z-10 mt-8 space-y-4">
           {cart.lines.map((line) => {
             const serverPrice = priceForVariant(line.variantId);
+            const returnRule = returnRuleForVariant(line.variantId);
             return (
               <article
                 key={line.id}
@@ -173,6 +178,9 @@ export function CartPageShell() {
                     <p className="mt-3 font-[family:var(--font-supporting)] text-[10px] uppercase tracking-[0.22em] text-[var(--color-text-secondary)]">
                       Unit price {(serverPrice?.unitPrice ?? line.unitPrice).formatted}
                     </p>
+                    {returnRule ? (
+                      <ReturnNotice notice={describeReturnRule(returnRule, returnRules)} className="mt-2" />
+                    ) : null}
                   </div>
                   <div className="text-right">
                     <p className="font-[family:var(--font-supporting)] text-[10px] uppercase tracking-[0.22em] text-[var(--color-text-muted)]">

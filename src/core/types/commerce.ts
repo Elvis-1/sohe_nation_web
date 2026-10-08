@@ -14,6 +14,21 @@ export type SeoOverrides = {
   imageUrl: string;
 };
 
+export type ProductReturnPolicy = "standard" | "final_sale" | "custom";
+
+/** A product's own return rule; `windowDays` is set only for a custom window. */
+export type ProductReturnRule = {
+  policy: ProductReturnPolicy;
+  windowDays: number | null;
+};
+
+/** Store-wide return rules from dashboard Settings → Returns. */
+export type StoreReturnRules = {
+  returnWindowDays: number;
+  /** Delivery regions where "final sale" applies; elsewhere final-sale items get the store window. */
+  finalSaleRegions: RegionCode[];
+};
+
 export type MediaAsset = {
   id: string;
   alt: string;
@@ -60,6 +75,7 @@ export type Product = {
     max: Money;
   };
   shippingCost?: Money;
+  returnRule: ProductReturnRule;
   variants: ProductVariant[];
 };
 
@@ -139,7 +155,10 @@ export type OrderSummary = {
   createdAt: string;
   status: "pending" | "paid" | "fulfilled" | "cancelled";
   total: Money;
+  /** Something can be returned for any reason. */
   isReturnEligible?: boolean;
+  /** Something can be returned, at least as faulty (final sale, or the window has closed). */
+  canReportFaulty?: boolean;
 };
 
 export type CustomerProfile = {

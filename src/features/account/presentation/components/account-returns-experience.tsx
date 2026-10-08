@@ -13,7 +13,7 @@ import {
 import { AccountLoadNotice } from "./account-load-notice";
 import { ReturnsPageShell } from "./returns-page-shell";
 
-export function AccountReturnsExperience() {
+export function AccountReturnsExperience({ initialOrderId }: { initialOrderId?: string }) {
   const { isAuthenticated, session } = useAccountAuth();
   const [account, setAccount] = useState<CustomerAccountData | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
@@ -67,6 +67,7 @@ export function AccountReturnsExperience() {
           <ReturnsPageShell
             account={account}
             auth={auth}
+            initialOrderId={initialOrderId}
             onReturnCreated={() => setRefreshKey((k) => k + 1)}
           />
         </>

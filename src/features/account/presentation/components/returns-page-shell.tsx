@@ -1,11 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
-import { ApiError } from "@/core/api/http-client";
-import type { AccountApiAuth, CustomerAccountData } from "../../data/services/get-customer-account";
-import { submitReturnRequest } from "../../data/services/get-customer-account";
+import type { AccountApiAuth, CustomerAccountData, CustomerOrderDetail, CustomerOrderLine, ReturnReasonCode } from "../../data/services/get-customer-account";
+import {
+  RETURN_REASONS,
+  ReturnRequestError,
+  getCustomerOrderDetail,
+  submitReturnRequest,
+} from "../../data/services/get-customer-account";
 
 const STATUS_LABEL: Record<string, string> = {
   new: "New",
@@ -18,51 +22,117 @@ const STATUS_LABEL: Record<string, string> = {
 type Props = {
   account: CustomerAccountData;
   auth?: AccountApiAuth;
+  /** Preselects this order when it has returnable items (from order detail "Start Return"). */
+  initialOrderId?: string;
   onReturnCreated: () => void;
 };
 
-export function ReturnsPageShell({ account, auth, onReturnCreated }: Props) {
-  const { returns, profile } = account;
+type LineChoice = { selected: boolean; quantity: number; reason: ReturnReasonCode | "" };
+
+/** The order being returned from, keyed by what was loaded so a changed order reads as loading. */
+type LoadedOrder = { key: string; order: CustomerOrderDetail | null; failed: boolean };
+
+const fieldClass =
+  "h-11 rounded-[0.9rem] border border-white/10 bg-black/25 px-3 text-sm text-[var(--color-text-primary)] outline-none transition focus:border-[var(--color-border-strong)] disabled:opacity-60";
+const labelClass =
+  "font-[family:var(--font-supporting)] text-[10px] uppercase tracking-[0.22em] text-[var(--color-text-muted)]";
+
+export function ReturnsPageShell({ account, auth, initialOrderId, onReturnCreated }: Props) {
+  const { returns, profile, returnRules } = account;
   const orders = profile.orders;
-  const eligibleOrders = orders.filter((o) => o.isReturnEligible);
+  const returnableOrders = orders.filter((o) => o.isReturnEligible || o.canReportFaulty);
   const orderNumberById = Object.fromEntries(orders.map((o) => [o.id, o.orderNumber]));
 
-  const [orderId, setOrderId] = useState(eligibleOrders[0]?.id ?? "");
-  const [itemSummary, setItemSummary] = useState("");
-  const [reason, setReason] = useState("");
+  const [chosenOrderId, setChosenOrderId] = useState(initialOrderId ?? "");
+  const orderId = returnableOrders.some((o) => o.id === chosenOrderId)
+    ? chosenOrderId
+    : (returnableOrders[0]?.id ?? "");
+  const [reloadKey, setReloadKey] = useState(0);
+  const [loaded, setLoaded] = useState<LoadedOrder | null>(null);
+  const [choices, setChoices] = useState<Record<string, LineChoice>>({});
   const [customerNote, setCustomerNote] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+  const [lineErrors, setLineErrors] = useState<Record<string, string>>({});
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+
+  const token = auth?.token;
+  const loadKey = `${orderId}:${reloadKey}`;
+  useEffect(() => {
+    if (!orderId) return;
+    let isActive = true;
+    getCustomerOrderDetail(orderId, auth)
+      .then((order) => {
+        if (isActive) setLoaded({ key: loadKey, order, failed: order === null });
+      })
+      .catch(() => {
+        if (isActive) setLoaded({ key: loadKey, order: null, failed: true });
+      });
+    return () => {
+      isActive = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loadKey, orderId, token]);
+
+  const current = loaded?.key === loadKey ? loaded : null;
+  const lines = current?.order?.lines ?? [];
+  const selectedLines = lines.filter((line) => choices[line.id]?.selected);
+  const canSubmit =
+    selectedLines.length > 0 && selectedLines.every((line) => choices[line.id]?.reason) && !submitting;
+
+  function updateChoice(line: CustomerOrderLine, patch: Partial<LineChoice>) {
+    setChoices((all) => {
+      const faultyOnly = line.returnEligibility?.faultyOnly ?? false;
+      const existing = all[line.id] ?? { selected: false, quantity: 1, reason: faultyOnly ? "faulty" : "" };
+      return { ...all, [line.id]: { ...existing, ...patch } };
+    });
+  }
+
+  function chooseOrder(nextOrderId: string) {
+    setChosenOrderId(nextOrderId);
+    setChoices({});
+    setLineErrors({});
+    setFormError(null);
+  }
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
-    if (!orderId || !itemSummary.trim() || !reason.trim() || eligibleOrders.length === 0) return;
+    if (!orderId || !canSubmit) return;
 
     setSubmitting(true);
     setFormError(null);
+    setLineErrors({});
     setSuccessMessage(null);
 
     try {
       await submitReturnRequest(
         {
           order_id: orderId,
-          item_summary: itemSummary.trim(),
-          reason: reason.trim(),
+          lines: selectedLines.map((line) => ({
+            order_line_id: line.id,
+            quantity: choices[line.id].quantity,
+            reason_code: choices[line.id].reason as ReturnReasonCode,
+          })),
           customer_note: customerNote.trim() || undefined,
         },
         auth,
       );
-      setItemSummary("");
-      setReason("");
+      setChoices({});
       setCustomerNote("");
-      setSuccessMessage("Return request submitted successfully.");
+      setSuccessMessage("Return request submitted. We'll email you once it has been reviewed.");
+      setReloadKey((key) => key + 1);
       onReturnCreated();
     } catch (err) {
-      if (err instanceof ApiError && err.code === "duplicate_return_request") {
-        setFormError("A return request already exists for this order. Contact support if you need to update it.");
-      } else if (err instanceof ApiError && err.code === "order_not_eligible_for_return") {
+      if (err instanceof ReturnRequestError && err.code === "return_line_not_eligible") {
+        setLineErrors(err.lineErrors);
+        setFormError("Some items can't be returned as chosen. See the notes on each item.");
+      } else if (
+        err instanceof ReturnRequestError &&
+        (err.code === "duplicate_return_request" || err.code === "order_not_eligible_for_return")
+      ) {
         setFormError(err.message);
+      } else if (err instanceof ReturnRequestError && err.status === 400) {
+        setFormError("Check the items, quantities, and reasons, then try again.");
       } else {
         setFormError("Failed to submit. Check your connection and try again.");
       }
@@ -149,8 +219,10 @@ export function ReturnsPageShell({ account, auth, onReturnCreated }: Props) {
             Submit a return against one of your orders.
           </h3>
 
-          <p className="mt-4 rounded-[1rem] border border-white/10 bg-black/20 px-4 py-3 font-[family:var(--font-supporting)] text-[10px] uppercase leading-6 tracking-[0.18em] text-[var(--color-text-muted)]">
-            Returns are accepted for delivered orders within 14 days of delivery. Items must be unused and in original condition.
+          <p className="mt-4 text-sm leading-7 text-[var(--color-text-secondary)]">
+            Choose the items you want to return. Most items can be returned within{" "}
+            {returnRules.returnWindowDays} days of delivery; final-sale items only if faulty. Items must be
+            unused and in their original condition unless faulty.
           </p>
           <p className="mt-3 text-sm leading-7 text-[var(--color-text-secondary)]">
             Need help before you submit? Contact {account.storeName} at{" "}
@@ -165,25 +237,23 @@ export function ReturnsPageShell({ account, auth, onReturnCreated }: Props) {
 
           <form onSubmit={(e) => void handleSubmit(e)} className="mt-6 grid gap-4">
             <label className="grid gap-2">
-              <span className="font-[family:var(--font-supporting)] text-[10px] uppercase tracking-[0.22em] text-[var(--color-text-muted)]">
-                Order
-              </span>
-              {eligibleOrders.length === 0 ? (
+              <span className={labelClass}>Order</span>
+              {returnableOrders.length === 0 ? (
                 <p className="text-sm text-[var(--color-text-secondary)]">
                   {account.loadErrors.includes("orders")
                     ? "Your orders could not be loaded, so returns cannot be started right now."
                     : orders.length === 0
                     ? "No orders found."
-                    : "None of your orders are currently eligible for a return. Orders must be delivered and within the 14-day return window."}
+                    : `None of your orders are currently eligible for a return. Returns open once an order is delivered and last ${returnRules.returnWindowDays} days for most items.`}
                 </p>
               ) : (
                 <select
                   value={orderId}
-                  onChange={(e) => setOrderId(e.target.value)}
+                  onChange={(e) => chooseOrder(e.target.value)}
                   required
-                  className="h-12 rounded-[1rem] border border-white/10 bg-black/25 px-4 text-sm text-[var(--color-text-primary)] outline-none transition focus:border-[var(--color-border-strong)]"
+                  className={`h-12 ${fieldClass}`}
                 >
-                  {eligibleOrders.map((order) => (
+                  {returnableOrders.map((order) => (
                     <option key={order.id} value={order.id}>
                       {order.orderNumber} — {order.createdAt}
                     </option>
@@ -192,46 +262,48 @@ export function ReturnsPageShell({ account, auth, onReturnCreated }: Props) {
               )}
             </label>
 
-            <label className="grid gap-2">
-              <span className="font-[family:var(--font-supporting)] text-[10px] uppercase tracking-[0.22em] text-[var(--color-text-muted)]">
-                Item summary
-              </span>
-              <input
-                value={itemSummary}
-                onChange={(e) => setItemSummary(e.target.value)}
-                placeholder="e.g. SN Command Jacket, size M"
-                required
-                className="h-12 rounded-[1rem] border border-white/10 bg-black/25 px-4 text-sm text-[var(--color-text-primary)] outline-none transition focus:border-[var(--color-border-strong)]"
-              />
-            </label>
+            {orderId ? (
+              <div className="grid gap-3">
+                <span className={labelClass}>Items</span>
+                {!current ? (
+                  <p className="text-sm text-[var(--color-text-secondary)]">Loading the items in this order…</p>
+                ) : current.failed ? (
+                  <div className="flex flex-wrap items-center gap-3 text-sm text-[var(--color-text-secondary)]">
+                    <span>The items in this order could not be loaded.</span>
+                    <button
+                      type="button"
+                      onClick={() => setReloadKey((key) => key + 1)}
+                      className="rounded-full border border-white/10 px-4 py-2 font-[family:var(--font-supporting)] text-[10px] uppercase tracking-[0.22em] text-[var(--color-text-primary)] transition hover:border-[var(--color-border-strong)]"
+                    >
+                      Retry
+                    </button>
+                  </div>
+                ) : (
+                  lines.map((line) => (
+                    <ReturnLinePicker
+                      key={line.id}
+                      line={line}
+                      choice={choices[line.id]}
+                      error={lineErrors[line.id]}
+                      onChange={(patch) => updateChoice(line, patch)}
+                    />
+                  ))
+                )}
+              </div>
+            ) : null}
 
             <label className="grid gap-2">
-              <span className="font-[family:var(--font-supporting)] text-[10px] uppercase tracking-[0.22em] text-[var(--color-text-muted)]">
-                Return reason
-              </span>
-              <textarea
-                value={reason}
-                onChange={(e) => setReason(e.target.value)}
-                placeholder="Describe why you are returning this item."
-                required
-                className="min-h-24 rounded-[1rem] border border-white/10 bg-black/25 px-4 py-3 text-sm text-[var(--color-text-primary)] outline-none transition focus:border-[var(--color-border-strong)]"
-              />
-            </label>
-
-            <label className="grid gap-2">
-              <span className="font-[family:var(--font-supporting)] text-[10px] uppercase tracking-[0.22em] text-[var(--color-text-muted)]">
-                Additional note (optional)
-              </span>
+              <span className={labelClass}>Additional note (optional)</span>
               <textarea
                 value={customerNote}
                 onChange={(e) => setCustomerNote(e.target.value)}
-                placeholder="Any extra context for the team."
+                placeholder="Anything that helps us, e.g. what is faulty."
                 className="min-h-20 rounded-[1rem] border border-white/10 bg-black/25 px-4 py-3 text-sm text-[var(--color-text-primary)] outline-none transition focus:border-[var(--color-border-strong)]"
               />
             </label>
 
             {formError ? (
-              <p className="text-sm text-red-400">{formError}</p>
+              <p role="alert" className="text-sm text-red-400">{formError}</p>
             ) : null}
 
             {successMessage ? (
@@ -240,7 +312,7 @@ export function ReturnsPageShell({ account, auth, onReturnCreated }: Props) {
 
             <button
               type="submit"
-              disabled={submitting || eligibleOrders.length === 0}
+              disabled={!canSubmit}
               className="rounded-full bg-[var(--color-accent-gold)] px-5 py-4 font-[family:var(--font-supporting)] text-[10px] uppercase tracking-[0.24em] text-black transition hover:bg-[var(--color-accent-gold-highlight)] disabled:opacity-50"
             >
               {submitting ? "Submitting…" : "Submit Return Request"}
@@ -248,6 +320,94 @@ export function ReturnsPageShell({ account, auth, onReturnCreated }: Props) {
           </form>
         </div>
       </section>
+    </div>
+  );
+}
+
+/** One order line: tick it, then choose how many and why. Items that can't be returned say why. */
+function ReturnLinePicker({
+  line,
+  choice,
+  error,
+  onChange,
+}: {
+  line: CustomerOrderLine;
+  choice: LineChoice | undefined;
+  error: string | undefined;
+  onChange: (patch: Partial<LineChoice>) => void;
+}) {
+  const check = line.returnEligibility;
+  const canPick = Boolean(check?.eligible && check.remainingQuantity > 0);
+  const faultyOnly = check?.faultyOnly ?? false;
+  const reasons = faultyOnly ? RETURN_REASONS.filter((reason) => reason.code === "faulty") : RETURN_REASONS;
+  const selected = canPick && Boolean(choice?.selected);
+
+  return (
+    <div
+      role="group"
+      aria-label={line.title}
+      className={`rounded-[1.25rem] border p-4 ${
+        selected ? "border-[var(--color-border-strong)] bg-black/30" : "border-white/8 bg-black/20"
+      } ${canPick ? "" : "opacity-70"}`}
+    >
+      <label className={`flex items-start gap-3 ${canPick ? "cursor-pointer" : ""}`}>
+        <input
+          type="checkbox"
+          aria-label={`Return ${line.title}`}
+          disabled={!canPick}
+          checked={selected}
+          onChange={(event) => onChange({ selected: event.target.checked })}
+          className="mt-1 h-4 w-4 accent-[var(--color-accent-gold)]"
+        />
+        <span className="min-w-0">
+          <span className="block text-sm font-semibold text-[var(--color-text-primary)]">{line.title}</span>
+          <span className="block text-xs text-[var(--color-text-secondary)]">
+            {line.variantLabel} · Bought {line.quantity}
+          </span>
+          {check ? (
+            <span
+              className={`mt-1 block text-xs leading-5 ${
+                faultyOnly ? "text-[var(--color-warning)]" : "text-[var(--color-text-muted)]"
+              }`}
+            >
+              {check.message}
+            </span>
+          ) : null}
+        </span>
+      </label>
+
+      {selected && check ? (
+        <div className="mt-3 grid gap-3 sm:grid-cols-[8rem_1fr]">
+          <select
+            aria-label={`Quantity of ${line.title}`}
+            value={choice?.quantity ?? 1}
+            onChange={(event) => onChange({ quantity: Number(event.target.value) })}
+            className={fieldClass}
+          >
+            {Array.from({ length: check.remainingQuantity }, (_, index) => index + 1).map((value) => (
+              <option key={value} value={value}>
+                Qty {value}
+              </option>
+            ))}
+          </select>
+          <select
+            aria-label={`Reason for ${line.title}`}
+            value={choice?.reason ?? ""}
+            onChange={(event) => onChange({ reason: event.target.value as ReturnReasonCode | "" })}
+            required
+            className={fieldClass}
+          >
+            {faultyOnly ? null : <option value="">Choose a reason</option>}
+            {reasons.map((reason) => (
+              <option key={reason.code} value={reason.code}>
+                {reason.label}
+              </option>
+            ))}
+          </select>
+        </div>
+      ) : null}
+
+      {error ? <p role="alert" className="mt-2 text-xs text-red-400">{error}</p> : null}
     </div>
   );
 }

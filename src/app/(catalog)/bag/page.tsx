@@ -2,11 +2,13 @@ import type { Metadata } from "next";
 
 import { PRIVATE_PAGE_ROBOTS } from "@/core/config/page-metadata";
 import { Container } from "@/core/ui/container";
+import { getStorefrontSettings } from "@/features/settings/data/services/get-storefront-settings";
 import { CartPageShell } from "@/features/cart-and-checkout/presentation/components/cart-page-shell";
 
 export const metadata: Metadata = { title: "Your bag", robots: PRIVATE_PAGE_ROBOTS };
 
-export default function BagPage() {
+export default async function BagPage() {
+  const settings = await getStorefrontSettings();
   return (
     <Container className="py-10 md:py-14">
       <section className="noise-overlay relative overflow-hidden rounded-[2rem] border border-white/8 bg-[linear-gradient(135deg,rgba(26,25,24,0.98),rgba(11,11,11,0.92))] p-6 shadow-[var(--shadow-gold)] md:p-8">
@@ -24,7 +26,7 @@ export default function BagPage() {
       </section>
 
       <div className="mt-8">
-        <CartPageShell />
+        <CartPageShell returnRules={settings.returns} />
       </div>
     </Container>
   );

@@ -11,6 +11,7 @@ import { JsonLd } from "@/core/ui/json-ld";
 import { productCrumbs } from "@/features/product-discovery/data/catalog-landings";
 import { Container } from "@/core/ui/container";
 import { getProductDetail } from "@/features/product-detail/data/services/get-product-detail";
+import { getStorefrontSettings } from "@/features/settings/data/services/get-storefront-settings";
 import { ProductGallery } from "@/features/product-detail/presentation/components/product-gallery";
 import { ProductPurchasePanel } from "@/features/product-detail/presentation/components/product-purchase-panel";
 import { ProductStoryBlocks } from "@/features/product-detail/presentation/components/product-story-blocks";
@@ -41,7 +42,7 @@ export default async function ProductPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const detail = await getProductDetail(slug);
+  const [detail, settings] = await Promise.all([getProductDetail(slug), getStorefrontSettings()]);
 
   if (!detail) {
     notFound();
@@ -50,12 +51,12 @@ export default async function ProductPage({
   return (
     <Container className="py-10 md:py-14">
       <JsonLd
-        data={[productGroupJsonLd(detail.product), breadcrumbJsonLd(productCrumbs(detail.product))]}
+        data={[productGroupJsonLd(detail.product, settings.returns), breadcrumbJsonLd(productCrumbs(detail.product))]}
       />
       <ViewItemTracker product={detail.product} />
       <div className="grid gap-8 xl:grid-cols-[1.05fr_0.95fr]">
         <ProductGallery product={detail.product} />
-        <ProductPurchasePanel product={detail.product} />
+        <ProductPurchasePanel product={detail.product} returnRules={settings.returns} />
       </div>
 
       <div className="mt-8">

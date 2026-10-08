@@ -1,5 +1,13 @@
-import type { Cart, CartSummary, CheckoutProvider, CheckoutSession, Money } from "@/core/types/commerce";
+import type {
+  Cart,
+  CartSummary,
+  CheckoutProvider,
+  CheckoutSession,
+  Money,
+  ProductReturnRule,
+} from "@/core/types/commerce";
 import { resolveApiBaseUrl } from "@/core/api/resolve-api-base-url";
+import { toReturnRule } from "@/core/utils/return-rule";
 
 type ShippingAddressInput = {
   recipientName: string;
@@ -43,6 +51,8 @@ type ApiCheckoutQuote = {
     quantity: number;
     unit_price: Money;
     line_total: Money;
+    return_policy?: string;
+    return_window_days?: number | null;
   }>;
   summary: CartSummary;
 };
@@ -57,6 +67,8 @@ export type CheckoutQuote = {
     quantity: number;
     unitPrice: Money;
     lineTotal: Money;
+    /** The product's own return rule; the notice resolves it for the delivery region. */
+    returnRule: ProductReturnRule;
   }>;
   summary: CartSummary;
 };
@@ -189,6 +201,7 @@ export async function getCheckoutQuote(cart: Cart): Promise<CheckoutQuote> {
       quantity: line.quantity,
       unitPrice: line.unit_price,
       lineTotal: line.line_total,
+      returnRule: toReturnRule(line.return_policy, line.return_window_days),
     })),
     summary: payload.summary,
   };

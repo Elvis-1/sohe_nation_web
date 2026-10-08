@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-import type { CustomerOrderDetail } from "../../data/services/get-customer-account";
+import type { CustomerOrderDetail, CustomerOrderLine } from "../../data/services/get-customer-account";
 
 type OrderDetailPageShellProps = {
   order: CustomerOrderDetail;
@@ -18,6 +18,30 @@ function formatShippingLines(order: CustomerOrderDetail): string[] {
     details.countryCode,
     details.phone,
   ].filter(Boolean);
+}
+
+function formatDate(iso: string): string {
+  return new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+}
+
+/** The item's return status: the API's message, plus the last day for a normal return. */
+function LineReturnStatus({ line }: { line: CustomerOrderLine }) {
+  const check = line.returnEligibility;
+  if (!check) return null;
+  const isFinalSale = line.returnRule.policy === "final_sale";
+  return (
+    <div aria-label={`Returns for ${line.title}`} className="mt-3 text-xs leading-6">
+      <p className={isFinalSale ? "text-[var(--color-warning)]" : "text-[var(--color-text-muted)]"}>
+        {check.message}
+      </p>
+      {check.eligible && !check.faultyOnly && check.returnableUntil ? (
+        <p className="text-[var(--color-text-secondary)]">
+          Return by {formatDate(check.returnableUntil)}
+          {check.remainingQuantity < line.quantity ? ` (${check.remainingQuantity} left to return)` : ""}
+        </p>
+      ) : null}
+    </div>
+  );
 }
 
 export function OrderDetailPageShell({ order }: OrderDetailPageShellProps) {
@@ -65,12 +89,14 @@ export function OrderDetailPageShell({ order }: OrderDetailPageShellProps) {
           >
             Back To Orders
           </Link>
-          <Link
-            href="/account/returns"
-            className="rounded-full bg-[var(--color-accent-gold)] px-4 py-3 font-[family:var(--font-supporting)] text-[10px] uppercase tracking-[0.22em] text-black transition hover:bg-[var(--color-accent-gold-highlight)]"
-          >
-            Start Return
-          </Link>
+          {order.canStartReturn ? (
+            <Link
+              href={`/account/returns?order=${encodeURIComponent(order.id)}`}
+              className="rounded-full bg-[var(--color-accent-gold)] px-4 py-3 font-[family:var(--font-supporting)] text-[10px] uppercase tracking-[0.22em] text-black transition hover:bg-[var(--color-accent-gold-highlight)]"
+            >
+              Start Return
+            </Link>
+          ) : null}
         </div>
       </section>
 
@@ -111,6 +137,7 @@ export function OrderDetailPageShell({ order }: OrderDetailPageShellProps) {
                   <p className="font-[family:var(--font-supporting)] text-xs uppercase tracking-[0.22em] text-[var(--color-text-primary)]">
                     {line.unitPrice.formatted}
                   </p>
+                  <LineReturnStatus line={line} />
                 </div>
               </article>
             ))
